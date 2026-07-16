@@ -1,0 +1,41 @@
+name: gpa_timetable_app
+description: Track semester & cumulative GPA, and build a timetable from an uploaded HTML file with class reminders.
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  cupertino_icons: ^1.0.6
+
+  # State management
+  provider: ^6.1.2
+
+  # Local persistence
+  sqflite: ^2.3.3+1
+  path: ^1.9.0
+  path_provider: ^2.1.3
+  shared_preferences: ^2.2.3
+
+  # Timetable HTML upload + parsing
+  file_picker: ^8.0.0+1
+  html: ^0.15.4
+
+  # Notifications (class reminders, 30 min before)
+  flutter_local_notifications: ^17.2.1+2
+  timezone: ^0.9.4
+
+  intl: ^0.19.0
+  syncfusion_flutter_pdf: ^28.1.33
+  fl_chart: ^0.70.2
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^4.0.0
+
+flutter:
+  uses-material-design: true
