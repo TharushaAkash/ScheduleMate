@@ -1,106 +1,202 @@
-# ScheduleMate — GPA & Timetable Manager (Flutter)
+# 📚 ScheduleMate — GPA & Timetable Manager
 
-ScheduleMate is a student productivity app built with Flutter. It helps students calculate semester and cumulative GPA, import their timetable from faculty HTML exports, and schedule weekly class reminders.
+A powerful Flutter app designed to help students manage their academic life. Track GPA, organize timetables, and receive smart class reminders—all in one place.
 
-## Why this app exists
-Many students need a simple way to:
-- track grades and GPA,
-- import a timetable from an HTML export,
-- keep class reminders in one place.
+---
 
-ScheduleMate combines GPA tracking, timetable import, and local notifications into a single Flutter app.
+## ✨ Features
 
-## Key features
-- Automatic semester and cumulative GPA calculation
-- Timetable import from HTML export files
-- Timetable view grouped by day
-- Weekly notification reminders for scheduled classes
+- 📊 **GPA Calculator** – Automatic semester and cumulative GPA calculation
+- 📅 **Smart Timetable Import** – Import from faculty HTML exports in seconds
+- 📍 **Organized Schedule View** – View classes grouped by day of the week
+- 🔔 **Notification Reminders** – Weekly notifications for scheduled classes
+- 💾 **Offline-First** – SQLite persistence for reliable, offline access
 
-## Technology stack
-- Dart + Flutter
-- Material 3 UI
-- SQLite persistence via `sqflite`
-- State management with `provider`
-- HTML parsing using `package:html`
+---
 
-## Installation
-1. Clone the repository:
+## 🎯 Why ScheduleMate?
+
+Managing your academic life can be overwhelming. ScheduleMate brings together everything you need:
+
+- **Track Grades Efficiently** – Never lose sight of your GPA
+- **Import Timetables Instantly** – No manual entry required
+- **Stay on Top** – Get timely reminders for your classes
+- **Simple & Intuitive** – Built for students, by students
+
+---
+
+## 🛠️ Technology Stack
+
+| Technology | Purpose |
+|-----------|---------|
+| **Dart + Flutter** | Cross-platform mobile development |
+| **Material 3 UI** | Modern, accessible interface |
+| **SQLite** (`sqflite`) | Local data persistence |
+| **Provider** | Efficient state management |
+| **package:html** | HTML parsing for timetable import |
+
+---
+
+## 📦 Installation
+
+### Prerequisites
+- Flutter SDK (latest version)
+- Dart SDK
+- Android Studio / Xcode (for emulator/device)
+
+### Steps
+
+1. **Clone the repository:**
    ```bash
    git clone https://github.com/TharushaAkash/ScheduleMate.git
    cd ScheduleMate
    ```
-2. Install dependencies:
+
+2. **Install dependencies:**
    ```bash
    flutter pub get
    ```
-3. Run the app:
+
+3. **Generate native folders (if needed):**
+   ```bash
+   flutter create --project-name schedulemate . --overwrite
+   flutter pub get
+   ```
+
+4. **Run the app:**
    ```bash
    flutter run
    ```
 
-If the repository does not yet contain native folders, generate them first:
-```bash
-flutter create --project-name gpa_timetable_app . --overwrite
-flutter pub get
-flutter run
-```
+---
 
-## Android setup
-For Android 12+ exact alarm reminders, add the following to `android/app/src/main/AndroidManifest.xml`:
+## 🔧 Android Configuration
+
+For **Android 12+** notification support, add these permissions to `android/app/src/main/AndroidManifest.xml`:
+
 ```xml
 <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM"/>
 <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
 ```
 
-## Project structure
-- `lib/main.dart` — app entry point, theme, provider setup
-- `lib/models/` — data models for courses, semesters, and timetable entries
-- `lib/providers/` — state management for GPA, timetable, and other app data
-- `lib/services/` — database helper, timetable parser, notifications
-- `lib/screens/` — UI screens for home, GPA, timetable upload, and timetable view
+---
 
-## Timetable parser
-The timetable parser in `lib/services/timetable_parser.dart` supports two formats:
-1. Flat HTML tables with header rows
-2. Grid-style schedules using weekdays and time slots
+## 📁 Project Structure
 
-### Customization notes
-If the parser does not recognize your export, update its mapping rules:
-- inspect the exported HTML structure,
-- verify header names and table layout,
-- adjust the parser selectors in `timetable_parser.dart`.
-
-## Usage
-1. Add a new semester.
-2. Enter modules, credit hours, and grades.
-3. Import your faculty timetable HTML file.
-4. Select your Year / Semester / Group.
-5. Enable reminders for your timetable.
-
-## Developer notes
-- Update the grade-point scale in `lib/models/course.dart` if needed.
-- The timetable parser is flexible but may require adjustments for different HTML formats.
-- Notifications are managed by `lib/services/notification_service.dart`.
-
-## Troubleshooting
-- If timetable import fails, check the HTML export format and adapt the parser.
-- If notifications are not delivered, verify Android notification permissions and alarm support.
-
-## Future improvements
-- Add edit support for semesters and grades
-- Add reminder lead-time settings
-- Cache the last imported timetable
-- Support multiple timetable parser profiles
-
-## Contributing
-- Fork the repo
-- Create a feature branch
-- Submit a PR with focused changes
-- Include a sanitized HTML example when adding parser support for a new format
-
-## License
-Add your preferred license information here.
+```
+lib/
+├── main.dart              # App entry point, theme & provider setup
+├── models/                # Data models (Course, Semester, Timetable)
+├── providers/             # State management (GPA, Timetable, UI state)
+├── services/              # Database, parser, notifications
+│   ├── database_helper.dart
+│   ├── timetable_parser.dart
+│   └── notification_service.dart
+└── screens/               # UI screens (Home, GPA, Upload, Timetable)
+```
 
 ---
 
-Need help customizing this README further or translating it into Sinhala? I can do that too.
+## 🚀 Quick Start Guide
+
+1. **Add a Semester**
+   - Enter semester name, year, and starting date
+
+2. **Add Courses**
+   - Input course name, credit hours, and grade
+   - App automatically calculates semester GPA
+
+3. **Import Timetable**
+   - Export your faculty timetable as HTML
+   - Upload through the app
+   - Select your Year / Semester / Group
+
+4. **Enable Reminders**
+   - Toggle notifications for your classes
+   - Receive weekly reminders before each class
+
+---
+
+## 🧩 Timetable Parser
+
+The parser (`lib/services/timetable_parser.dart`) supports:
+
+✅ Flat HTML tables with header rows  
+✅ Grid-style schedules (weekday × time slots)
+
+### Custom Format Support
+
+If your HTML export doesn't parse automatically:
+
+1. Inspect the exported HTML structure
+2. Verify header names and table layout
+3. Update the parser selectors in `timetable_parser.dart`
+
+---
+
+## 🛠️ Customization
+
+### Grade Point Scale
+Update the grade scale in `lib/models/course.dart` to match your institution.
+
+### Notification Timing
+Modify lead-time settings in `lib/services/notification_service.dart`.
+
+### UI Theme
+Customize Material 3 theme in `lib/main.dart`.
+
+---
+
+## 🐛 Troubleshooting
+
+| Issue | Solution |
+|-------|----------|
+| **Timetable import fails** | Verify HTML format matches parser requirements; update selectors if needed |
+| **Notifications not showing** | Check Android notification permissions and alarm support on device |
+| **GPA calculation off** | Verify grade scale in `course.dart` matches your institution |
+| **Duplicate courses** | Clear database and re-import timetable |
+
+---
+
+## 🚧 Future Roadmap
+
+- ✏️ Edit support for semesters and grades
+- ⏰ Customizable reminder lead-time settings
+- 💾 Cache & restore last imported timetable
+- 🎯 Multiple timetable parser profiles for different institutions
+- 📊 GPA trend charts and analytics
+
+---
+
+## 🤝 Contributing
+
+We love contributions! Here's how:
+
+1. **Fork the repository**
+2. **Create a feature branch** (`git checkout -b feature/amazing-feature`)
+3. **Commit your changes** (`git commit -m 'Add amazing feature'`)
+4. **Push to the branch** (`git push origin feature/amazing-feature`)
+5. **Open a Pull Request**
+
+**When adding parser support for new HTML formats:**
+- Include a sanitized HTML example in your PR
+- Test thoroughly with different date/time formats
+
+---
+
+## 📝 License
+
+This project is licensed under the MIT License. See `LICENSE` file for details.
+
+---
+
+## 💬 Support & Feedback
+
+Have questions or suggestions? Feel free to:
+- Open an [Issue](https://github.com/TharushaAkash/ScheduleMate/issues)
+- Start a [Discussion](https://github.com/TharushaAkash/ScheduleMate/discussions)
+- Contact the maintainer
+
+---
+
+**Made with ❤️ for students, by students.**
