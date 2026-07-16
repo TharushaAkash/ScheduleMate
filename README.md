@@ -1,4 +1,4 @@
-# <img src="assets/images/app_icon.png" width="50" height="50" alt="ScheduleMate Icon"> ScheduleMate
+# <img src="android/app/src/main/res/mipmap-hdpi/ic_launcher.png" width="50" height="50" alt="ScheduleMate Icon"> ScheduleMate
 
 > A powerful Flutter app designed to help students manage their academic life with ease.
 
@@ -146,11 +146,13 @@ ScheduleMate/
 │       ├── gpa_screen.dart
 │       ├── timetable_upload_screen.dart
 │       └── timetable_view_screen.dart
-├── assets/
-│   ├── images/
-│   │   └── app_icon.png
-│   └── fonts/
 ├── android/
+│   └── app/src/main/res/
+│       ├── mipmap-hdpi/
+│       ├── mipmap-mdpi/
+│       ├── mipmap-xhdpi/
+│       ├── mipmap-xxhdpi/
+│       └── mipmap-xxxhdpi/
 ├── ios/
 └── pubspec.yaml
 ```
