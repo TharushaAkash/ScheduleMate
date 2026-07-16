@@ -13,6 +13,8 @@ class NotificationService {
 
   static const _channelId = 'class_reminders';
   static const _channelName = 'Class Reminders';
+  static const _announcementChannelId = 'lms_announcements';
+  static const _announcementChannelName = 'LMS Announcements';
 
   Future<void> init() async {
     tz_data.initializeTimeZones();
@@ -40,6 +42,17 @@ class NotificationService {
         .resolvePlatformSpecificImplementation<
             AndroidFlutterLocalNotificationsPlugin>()
         ?.createNotificationChannel(androidChannel);
+
+    const announcementChannel = AndroidNotificationChannel(
+      _announcementChannelId,
+      _announcementChannelName,
+      description: 'New announcements imported from CourseWeb',
+      importance: Importance.high,
+    );
+    await _plugin
+        .resolvePlatformSpecificImplementation<
+            AndroidFlutterLocalNotificationsPlugin>()
+        ?.createNotificationChannel(announcementChannel);
 
     await _plugin
         .resolvePlatformSpecificImplementation<
@@ -95,6 +108,25 @@ class NotificationService {
     for (final e in entries) {
       await scheduleClassReminder(e);
     }
+  }
+
+  Future<void> showAnnouncementsImportedNotification(int count) async {
+    await _plugin.show(
+      // Fixed id so repeated imports update/replace the same notification
+      // instead of piling up.
+      9001,
+      count == 1 ? 'New announcement' : '$count new announcements',
+      'Tap to view what\'s new on CourseWeb.',
+      const NotificationDetails(
+        android: AndroidNotificationDetails(
+          _announcementChannelId,
+          _announcementChannelName,
+          importance: Importance.high,
+          priority: Priority.high,
+        ),
+        iOS: DarwinNotificationDetails(),
+      ),
+    );
   }
 
   Future<void> cancelAll() async => _plugin.cancelAll();

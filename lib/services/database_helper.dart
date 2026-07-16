@@ -1,6 +1,7 @@
 import 'package:path/path.dart';
 import 'package:sqflite/sqflite.dart';
 
+import '../models/announcement.dart';
 import '../models/course.dart';
 import '../models/semester.dart';
 import '../models/timetable_entry.dart';
@@ -21,16 +22,22 @@ class DatabaseHelper {
     final path = join(dbPath, 'gpa_timetable_app.db');
     return openDatabase(
       path,
-      version: 2,
+      version: 3,
       onUpgrade: (db, oldVersion, newVersion) async {
-        await db.execute('DROP TABLE IF EXISTS timetable_entries');
-        await db.execute('DROP TABLE IF EXISTS courses');
-        await db.execute('DROP TABLE IF EXISTS semesters');
-        // Let onCreate handle recreation
-        await _createTables(db);
+        if (oldVersion < 3) {
+          // Earlier upgrade path dropped/recreated the older tables; keep
+          // that behaviour, and add the new announcements table without
+          // touching anything else.
+          await db.execute('DROP TABLE IF EXISTS timetable_entries');
+          await db.execute('DROP TABLE IF EXISTS courses');
+          await db.execute('DROP TABLE IF EXISTS semesters');
+          await _createTables(db);
+          await _createAnnouncementsTable(db);
+        }
       },
       onCreate: (db, version) async {
         await _createTables(db);
+        await _createAnnouncementsTable(db);
       },
     );
   }
@@ -71,7 +78,65 @@ class DatabaseHelper {
         ''');
   }
 
-  // ---------- Semesters ----------
+  Future<void> _createAnnouncementsTable(Database db) async {
+    await db.execute('''
+          CREATE TABLE IF NOT EXISTS announcements (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            title TEXT NOT NULL,
+            snippet TEXT NOT NULL,
+            author TEXT NOT NULL,
+            dateText TEXT NOT NULL,
+            sourceUrl TEXT NOT NULL,
+            courseLabel TEXT NOT NULL,
+            importedAt TEXT NOT NULL,
+            isRead INTEGER NOT NULL DEFAULT 0,
+            dedupeKey TEXT UNIQUE
+          )
+        ''');
+  }
+
+  // ---------- Announcements ----------
+  Future<int> insertAnnouncementIfNew(Announcement a) async {
+    final db = await database;
+    try {
+      return await db.insert(
+        'announcements',
+        {...a.toMap()..remove('id'), 'dedupeKey': a.dedupeKey},
+        conflictAlgorithm: ConflictAlgorithm.ignore,
+      );
+    } catch (_) {
+      return 0;
+    }
+  }
+
+  Future<List<Announcement>> getAnnouncements() async {
+    final db = await database;
+    final rows = await db.query('announcements', orderBy: 'id DESC');
+    return rows.map((r) => Announcement.fromMap(r)).toList();
+  }
+
+  Future<void> markAnnouncementRead(int id) async {
+    final db = await database;
+    await db.update('announcements', {'isRead': 1},
+        where: 'id = ?', whereArgs: [id]);
+  }
+
+  Future<void> markAllAnnouncementsRead() async {
+    final db = await database;
+    await db.update('announcements', {'isRead': 1});
+  }
+
+  Future<void> deleteAnnouncement(int id) async {
+    final db = await database;
+    await db.delete('announcements', where: 'id = ?', whereArgs: [id]);
+  }
+
+  Future<void> clearAnnouncements() async {
+    final db = await database;
+    await db.delete('announcements');
+  }
+
+
   Future<int> insertSemester(Semester s) async {
     final db = await database;
     return db.insert('semesters', s.toMap()..remove('id'));
