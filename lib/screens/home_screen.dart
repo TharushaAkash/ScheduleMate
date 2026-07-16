@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import 'announcements_screen.dart';
 import 'gpa_screen.dart';
 import 'timetable_upload_screen.dart';
 import 'ca_marks_screen.dart';
@@ -19,6 +20,7 @@ class _HomeScreenState extends State<HomeScreen> {
     _NavItem(Icons.school_rounded, Icons.school_rounded, 'GPA'),
     _NavItem(Icons.calendar_month_rounded, Icons.calendar_month_rounded, 'Timetable'),
     _NavItem(Icons.description_rounded, Icons.description_rounded, 'CA Marks'),
+    _NavItem(Icons.campaign_rounded, Icons.campaign_rounded, 'Updates'),
     _NavItem(Icons.person_rounded, Icons.person_rounded, 'Profile'),
   ];
 
@@ -26,6 +28,7 @@ class _HomeScreenState extends State<HomeScreen> {
     GpaScreen(),
     TimetableUploadScreen(),
     CaMarksScreen(),
+    AnnouncementsScreen(),
     ProfileScreen(),
   ];
 
