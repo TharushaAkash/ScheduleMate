@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:url_launcher/url_launcher.dart';
-import 'package:flutter_inappwebview/flutter_inappwebview.dart';
+import 'package:webview_flutter/webview_flutter.dart';
 
 import '../services/lms_auth_service.dart';
 
@@ -17,10 +16,24 @@ class LmsLoginScreen extends StatefulWidget {
 }
 
 class _LmsLoginScreenState extends State<LmsLoginScreen> {
-  late final InAppWebViewController _controller;
+  late final WebViewController _controller;
   double _progress = 0;
   bool _finishing = false;
-  String? _errorMessage;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = WebViewController()
+      ..setJavaScriptMode(JavaScriptMode.unrestricted)
+      ..setBackgroundColor(const Color(0xFFFFFFFF))
+      ..setNavigationDelegate(
+        NavigationDelegate(
+          onProgress: (p) => setState(() => _progress = p / 100),
+          onPageFinished: _onPageFinished,
+        ),
+      )
+      ..loadRequest(Uri.parse(LmsAuthService.loginUrl));
+  }
 
   Future<void> _onPageFinished(String url) async {
     if (_finishing) return;
@@ -33,15 +46,6 @@ class _LmsLoginScreenState extends State<LmsLoginScreen> {
     }
   }
 
-  Future<void> _openInExternalBrowser() async {
-    final uri = Uri.parse(LmsAuthService.loginUrl);
-    if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Could not open browser.')),
-      );
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -49,16 +53,8 @@ class _LmsLoginScreenState extends State<LmsLoginScreen> {
         title: const Text('Log in to CourseWeb'),
         actions: [
           IconButton(
-            icon: const Icon(Icons.open_in_browser),
-            tooltip: 'Open in browser',
-            onPressed: _openInExternalBrowser,
-          ),
-          IconButton(
             icon: const Icon(Icons.refresh_rounded),
-            onPressed: () {
-              setState(() => _errorMessage = null);
-              _controller.reload();
-            },
+            onPressed: () => _controller.reload(),
           ),
         ],
       ),
@@ -66,57 +62,7 @@ class _LmsLoginScreenState extends State<LmsLoginScreen> {
         children: [
           if (_progress < 1)
             LinearProgressIndicator(value: _progress, minHeight: 3),
-          if (_errorMessage != null)
-            Expanded(
-              child: Center(
-                child: Padding(
-                  padding: const EdgeInsets.all(20),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Icon(Icons.error_outline, size: 64, color: Colors.redAccent),
-                      const SizedBox(height: 16),
-                      Text(_errorMessage!, textAlign: TextAlign.center),
-                      const SizedBox(height: 18),
-                      FilledButton(
-                        onPressed: () {
-                          setState(() => _errorMessage = null);
-                          _controller.reload();
-                        },
-                        child: const Text('Retry'),
-                      ),
-                      const SizedBox(height: 12),
-                      FilledButton(
-                        onPressed: _openInExternalBrowser,
-                        child: const Text('Open in browser'),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            )
-          else
-            Expanded(
-              child: InAppWebView(
-                initialUrlRequest: URLRequest(url: WebUri(LmsAuthService.loginUrl)),
-                onWebViewCreated: (controller) => _controller = controller,
-                onLoadStart: (controller, url) => setState(() => _errorMessage = null),
-                onLoadStop: (controller, url) {
-                  if (url != null) _onPageFinished(url.toString());
-                },
-                onProgressChanged: (controller, progress) {
-                  setState(() => _progress = progress / 100);
-                },
-                onReceivedError: (controller, request, error) {
-                  setState(() {
-                    _errorMessage = '${error.type}: ${error.description}';
-                  });
-                },
-                onReceivedServerTrustAuthRequest: (controller, challenge) async {
-                  return ServerTrustAuthResponse(action: ServerTrustAuthResponseAction.PROCEED);
-                },
-              ),
-            ),
+          Expanded(child: WebViewWidget(controller: _controller)),
         ],
       ),
     );

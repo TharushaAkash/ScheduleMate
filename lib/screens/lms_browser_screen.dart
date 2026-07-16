@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:url_launcher/url_launcher.dart';
-import 'package:flutter_inappwebview/flutter_inappwebview.dart';
+import 'package:webview_flutter/webview_flutter.dart';
 
 import '../services/announcement_parser.dart';
 import '../services/database_helper.dart';
@@ -21,11 +20,28 @@ class LmsBrowserScreen extends StatefulWidget {
 }
 
 class _LmsBrowserScreenState extends State<LmsBrowserScreen> {
-  late final InAppWebViewController _controller;
+  late final WebViewController _controller;
   double _progress = 0;
   bool _importing = false;
   String _currentUrl = '';
-  String? _errorMessage;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = WebViewController()
+      ..setJavaScriptMode(JavaScriptMode.unrestricted)
+      ..setBackgroundColor(const Color(0xFFFFFFFF))
+      ..setNavigationDelegate(
+        NavigationDelegate(
+          onProgress: (p) => setState(() => _progress = p / 100),
+          onPageFinished: (url) => setState(() => _currentUrl = url),
+          onUrlChange: (change) {
+            if (change.url != null) setState(() => _currentUrl = change.url!);
+          },
+        ),
+      )
+      ..loadRequest(Uri.parse(widget.startUrl));
+  }
 
   Future<void> _importCurrentPage() async {
     if (_importing) return;
@@ -39,7 +55,7 @@ class _LmsBrowserScreenState extends State<LmsBrowserScreen> {
       }
 
       final rawResult = await _controller
-          .evaluateJavascript(source: 'document.documentElement.outerHTML');
+          .runJavaScriptReturningResult('document.documentElement.outerHTML');
       final htmlString = _decodeJsResult(rawResult);
       final found = AnnouncementParser.parse(htmlString, _currentUrl);
 
@@ -81,13 +97,6 @@ class _LmsBrowserScreenState extends State<LmsBrowserScreen> {
     return s;
   }
 
-  Future<void> _openInExternalBrowser(String url) async {
-    final uri = Uri.tryParse(url);
-    if (uri == null || !await launchUrl(uri, mode: LaunchMode.externalApplication)) {
-      _showMessage('Could not open browser.', isError: true);
-    }
-  }
-
   void _showMessage(String msg, {bool isError = false}) {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
@@ -110,14 +119,11 @@ class _LmsBrowserScreenState extends State<LmsBrowserScreen> {
           IconButton(
             icon: const Icon(Icons.home_rounded),
             tooltip: 'Dashboard',
-            onPressed: () => _controller.loadUrl(urlRequest: URLRequest(url: WebUri(LmsAuthService.dashboardUrl))),
+            onPressed: () => _controller.loadRequest(Uri.parse(LmsAuthService.dashboardUrl)),
           ),
           IconButton(
             icon: const Icon(Icons.refresh_rounded),
-            onPressed: () {
-              setState(() => _errorMessage = null);
-              _controller.reload();
-            },
+            onPressed: () => _controller.reload(),
           ),
         ],
       ),
@@ -125,60 +131,7 @@ class _LmsBrowserScreenState extends State<LmsBrowserScreen> {
         children: [
           if (_progress < 1)
             LinearProgressIndicator(value: _progress, minHeight: 3),
-          if (_errorMessage != null)
-            Expanded(
-              child: Center(
-                child: Padding(
-                  padding: const EdgeInsets.all(20),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Icon(Icons.error_outline, size: 64, color: Colors.redAccent),
-                      const SizedBox(height: 16),
-                      Text(_errorMessage!, textAlign: TextAlign.center),
-                      const SizedBox(height: 18),
-                      FilledButton(
-                        onPressed: () {
-                          setState(() => _errorMessage = null);
-                          _controller.reload();
-                        },
-                        child: const Text('Retry'),
-                      ),
-                      const SizedBox(height: 12),
-                      FilledButton(
-                        onPressed: () => _openInExternalBrowser(_currentUrl.isEmpty ? LmsAuthService.dashboardUrl : _currentUrl),
-                        child: const Text('Open in browser'),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            )
-          else
-            Expanded(
-              child: InAppWebView(
-                initialUrlRequest: URLRequest(url: WebUri(widget.startUrl)),
-                onWebViewCreated: (controller) => _controller = controller,
-                onLoadStart: (controller, url) {
-                  setState(() => _errorMessage = null);
-                  if (url != null) setState(() => _currentUrl = url.toString());
-                },
-                onLoadStop: (controller, url) {
-                  if (url != null) setState(() => _currentUrl = url.toString());
-                },
-                onProgressChanged: (controller, progress) {
-                  setState(() => _progress = progress / 100);
-                },
-                onReceivedError: (controller, request, error) {
-                  setState(() {
-                    _errorMessage = '${error.type}: ${error.description}';
-                  });
-                },
-                onReceivedServerTrustAuthRequest: (controller, challenge) async {
-                  return ServerTrustAuthResponse(action: ServerTrustAuthResponseAction.PROCEED);
-                },
-              ),
-            ),
+          Expanded(child: WebViewWidget(controller: _controller)),
         ],
       ),
       floatingActionButton: FloatingActionButton.extended(
