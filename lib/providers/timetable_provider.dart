@@ -4,6 +4,7 @@ import '../models/timetable_entry.dart';
 import '../services/database_helper.dart';
 import '../services/notification_service.dart';
 import '../services/timetable_parser.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class TimetableProvider extends ChangeNotifier {
   ParsedTimetable? _parsed;
@@ -82,7 +83,15 @@ class TimetableProvider extends ChangeNotifier {
   }
 
   Future<void> scheduleReminders() async {
-    await NotificationService.instance.scheduleAll(currentTimetable);
+    final prefs = await SharedPreferences.getInstance();
+    final notifiedId = prefs.getString('notified_timetable_id');
+    if (notifiedId == null) return;
+    
+    final parts = notifiedId.split('_');
+    if (parts.length == 3) {
+      final entries = await DatabaseHelper.instance.getTimetable(parts[0], parts[1], parts[2]);
+      await NotificationService.instance.scheduleAll(entries);
+    }
   }
 
   /// Groups the current timetable's classes by day for card display,

@@ -36,9 +36,11 @@ class _LmsLoginScreenState extends State<LmsLoginScreen> {
   Future<void> _openInExternalBrowser() async {
     final uri = Uri.parse(LmsAuthService.loginUrl);
     if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Could not open browser.')),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Could not open browser.')),
+        );
+      }
     }
   }
 

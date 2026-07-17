@@ -278,8 +278,59 @@ class TimetableParser {
                  if (subGroup.isEmpty) subGroup = group;
                  
                  String moduleContent = getCellText(1);
-                 String lecturer = getCellText(2);
-                 String venue = getCellText(3);
+                 
+                 List<String> details = [];
+                 for (int c = 2; c < numCols; c++) {
+                   String text = getCellText(c);
+                   if (text.isNotEmpty) details.add(text);
+                 }
+                 
+                 String lecturer = '';
+                 String venue = '';
+                 String foundType = '';
+                 
+                 final types = [
+                   'lecture+tutorial', 'lecture + tutorial', 
+                   'practical / lab', 'practical/lab', 
+                   'lecture', 'tutorial', 'workshop', 'practical', 'lab', 'byod'
+                 ];
+                 details.removeWhere((line) {
+                   final l = line.toLowerCase();
+                   bool isType = types.any((t) => l == t || l.startsWith('$t ') || l.endsWith(' $t'));
+                   if (isType && foundType.isEmpty) foundType = line;
+                   return isType;
+                 });
+                 
+                 if (details.isNotEmpty) {
+                   int lecIdx = details.indexWhere((line) {
+                     final l = line.toLowerCase();
+                     return l.contains('mr ') || l.contains('mr.') || 
+                            l.contains('ms ') || l.contains('ms.') || 
+                            l.contains('dr ') || l.contains('dr.') || 
+                            l.contains('prof ') || l.contains('prof.') ||
+                            l.contains(',');
+                   });
+                     
+                   if (lecIdx != -1) {
+                     lecturer = details[lecIdx];
+                     details.removeAt(lecIdx);
+                   }
+                   
+                   if (details.isNotEmpty) venue = details.join(', ');
+                 }
+                 
+                 // If no clear lecturer found, SLIIT detailed tables usually have Venue then Lecturer
+                 if (lecturer.isEmpty && details.length >= 2) {
+                   venue = details[0];
+                   lecturer = details[1];
+                 } else if (lecturer.isEmpty && details.length == 1) {
+                   final r = details[0];
+                   if (r.toLowerCase() == 'online' || RegExp(r'^[A-Z0-9\s\-]+$').hasMatch(r) || r.length < 10) {
+                     venue = r;
+                   } else {
+                     lecturer = r;
+                   }
+                 }
                  
                  String moduleCode = '';
                  String moduleName = moduleContent;
@@ -293,6 +344,10 @@ class TimetableParser {
                    RegExp(r'([a-z])(Practical|Lecture|Tutorial|Lab)'), 
                    (m) => '${m.group(1)} ${m.group(2)}'
                  );
+                 
+                 if (foundType.isNotEmpty && !moduleName.toLowerCase().contains(foundType.toLowerCase())) {
+                   moduleName = '$moduleName - $foundType';
+                 }
 
                  if (moduleName.isEmpty && moduleCode.isEmpty) continue;
 
@@ -330,8 +385,57 @@ class TimetableParser {
              }
              
              String moduleContent = lines.length > moduleLineIdx ? lines[moduleLineIdx] : '';
-             String lecturer = lines.length > moduleLineIdx + 1 ? lines[moduleLineIdx + 1] : '';
-             String venue = lines.length > moduleLineIdx + 2 ? lines[moduleLineIdx + 2] : '';
+             
+             List<String> remaining = lines.skip(moduleLineIdx + 1).toList();
+             String lecturer = '';
+             String venue = '';
+             String foundType = '';
+             
+             // Remove class types from the remaining lines so they don't get mixed up as venues or lecturers
+             final types = [
+               'lecture+tutorial', 'lecture + tutorial', 
+               'practical / lab', 'practical/lab', 
+               'lecture', 'tutorial', 'workshop', 'practical', 'lab', 'byod'
+             ];
+             remaining.removeWhere((line) {
+               final l = line.toLowerCase();
+               bool isType = types.any((t) => l == t || l.startsWith('$t ') || l.endsWith(' $t'));
+               if (isType && foundType.isEmpty) foundType = line;
+               return isType;
+             });
+             
+             if (remaining.isNotEmpty) {
+               int lecIdx = remaining.indexWhere((line) {
+                 final l = line.toLowerCase();
+                 return l.contains('mr ') || l.contains('mr.') || 
+                        l.contains('ms ') || l.contains('ms.') || 
+                        l.contains('dr ') || l.contains('dr.') || 
+                        l.contains('prof ') || l.contains('prof.') ||
+                        l.contains(',');
+               });
+                 
+               if (lecIdx != -1) {
+                 lecturer = remaining[lecIdx];
+                 remaining.removeAt(lecIdx);
+               }
+               
+               if (remaining.isNotEmpty) {
+                 venue = remaining.join(', ');
+               }
+             }
+             
+             // In flat tables, usually Lecturer is first, then Venue
+             if (lecturer.isEmpty && remaining.length >= 2) {
+               lecturer = remaining[0];
+               venue = remaining[1];
+             } else if (lecturer.isEmpty && remaining.length == 1) {
+               final r = remaining[0];
+               if (r.toLowerCase() == 'online' || RegExp(r'^[A-Z0-9\s\-]+$').hasMatch(r) || r.length < 10) {
+                 venue = r;
+               } else {
+                 lecturer = r;
+               }
+             }
              
              String moduleCode = '';
              String moduleName = moduleContent;
@@ -339,6 +443,10 @@ class TimetableParser {
              if (codeMatch != null) {
                moduleCode = codeMatch.group(1)!;
                moduleName = codeMatch.group(2)!;
+             }
+             
+             if (foundType.isNotEmpty && !moduleName.toLowerCase().contains(foundType.toLowerCase())) {
+               moduleName = '$moduleName - $foundType';
              }
              
              moduleName = moduleName.replaceAllMapped(

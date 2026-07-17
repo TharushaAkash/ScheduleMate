@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../providers/theme_provider.dart';
+import '../providers/timetable_provider.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -16,6 +17,7 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
   final _studentNameController = TextEditingController();
   late AnimationController _animController;
   late Animation<double> _slideAnim;
+  int _notificationTime = 30;
 
   @override
   void initState() {
@@ -39,6 +41,7 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
     setState(() {
       _studentIdController.text = prefs.getString('student_id') ?? '';
       _studentNameController.text = prefs.getString('student_name') ?? '';
+      _notificationTime = prefs.getInt('notification_time') ?? 30;
     });
   }
 
@@ -46,7 +49,9 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('student_id', _studentIdController.text.trim());
     await prefs.setString('student_name', _studentNameController.text.trim());
+    await prefs.setInt('notification_time', _notificationTime);
     if (mounted) {
+      Provider.of<TimetableProvider>(context, listen: false).scheduleReminders();
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: const Row(
@@ -219,50 +224,114 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
                               ],
                             ),
                             child: Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
-                              child: Row(
+                              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                              child: Column(
                                 children: [
-                                  Container(
-                                    padding: const EdgeInsets.all(10),
-                                    decoration: BoxDecoration(
-                                      color: primary.withOpacity(0.1),
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                    child: Icon(
-                                      themeProvider.isDarkMode
-                                          ? Icons.dark_mode_rounded
-                                          : Icons.light_mode_rounded,
-                                      color: primary,
-                                      size: 22,
-                                    ),
-                                  ),
-                                  const SizedBox(width: 16),
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                  Padding(
+                                    padding: const EdgeInsets.symmetric(vertical: 8),
+                                    child: Row(
                                       children: [
-                                        Text(
-                                          'Dark Mode',
-                                          style: TextStyle(
-                                            fontWeight: FontWeight.w600,
-                                            fontSize: 15,
-                                            color: isDark ? Colors.white : Colors.black87,
+                                        Container(
+                                          padding: const EdgeInsets.all(10),
+                                          decoration: BoxDecoration(
+                                            color: primary.withOpacity(0.1),
+                                            borderRadius: BorderRadius.circular(12),
+                                          ),
+                                          child: Icon(
+                                            themeProvider.isDarkMode
+                                                ? Icons.dark_mode_rounded
+                                                : Icons.light_mode_rounded,
+                                            color: primary,
+                                            size: 22,
                                           ),
                                         ),
-                                        Text(
-                                          themeProvider.isDarkMode ? 'Currently dark' : 'Currently light',
-                                          style: TextStyle(
-                                            fontSize: 12,
-                                            color: isDark ? Colors.white54 : Colors.black38,
+                                        const SizedBox(width: 16),
+                                        Expanded(
+                                          child: Column(
+                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                            children: [
+                                              Text(
+                                                'Dark Mode',
+                                                style: TextStyle(
+                                                  fontWeight: FontWeight.w600,
+                                                  fontSize: 15,
+                                                  color: isDark ? Colors.white : Colors.black87,
+                                                ),
+                                              ),
+                                              Text(
+                                                themeProvider.isDarkMode ? 'Currently dark' : 'Currently light',
+                                                style: TextStyle(
+                                                  fontSize: 12,
+                                                  color: isDark ? Colors.white54 : Colors.black38,
+                                                ),
+                                              ),
+                                            ],
                                           ),
+                                        ),
+                                        Switch.adaptive(
+                                          value: themeProvider.isDarkMode,
+                                          onChanged: (_) => themeProvider.toggleTheme(),
+                                          activeColor: primary,
                                         ),
                                       ],
                                     ),
                                   ),
-                                  Switch.adaptive(
-                                    value: themeProvider.isDarkMode,
-                                    onChanged: (_) => themeProvider.toggleTheme(),
-                                    activeColor: primary,
+                                  Divider(color: Colors.grey.withOpacity(0.2), height: 1),
+                                  Padding(
+                                    padding: const EdgeInsets.symmetric(vertical: 8),
+                                    child: Row(
+                                      children: [
+                                        Container(
+                                          padding: const EdgeInsets.all(10),
+                                          decoration: BoxDecoration(
+                                            color: primary.withOpacity(0.1),
+                                            borderRadius: BorderRadius.circular(12),
+                                          ),
+                                          child: Icon(
+                                            Icons.access_time_rounded,
+                                            color: primary,
+                                            size: 22,
+                                          ),
+                                        ),
+                                        const SizedBox(width: 16),
+                                        Expanded(
+                                          child: Text(
+                                            'Remind me before',
+                                            style: TextStyle(
+                                              fontWeight: FontWeight.w600,
+                                              fontSize: 15,
+                                              color: isDark ? Colors.white : Colors.black87,
+                                            ),
+                                          ),
+                                        ),
+                                        DropdownButtonHideUnderline(
+                                          child: DropdownButton<int>(
+                                            value: _notificationTime,
+                                            dropdownColor: isDark ? const Color(0xFF252535) : Colors.white,
+                                            style: TextStyle(
+                                              fontSize: 14,
+                                              fontWeight: FontWeight.w500,
+                                              color: isDark ? Colors.white : Colors.black87,
+                                            ),
+                                            icon: Icon(Icons.arrow_drop_down_rounded, color: primary),
+                                            items: const [
+                                              DropdownMenuItem(value: 5, child: Text('5 min')),
+                                              DropdownMenuItem(value: 15, child: Text('15 min')),
+                                              DropdownMenuItem(value: 30, child: Text('30 min')),
+                                              DropdownMenuItem(value: 45, child: Text('45 min')),
+                                              DropdownMenuItem(value: 60, child: Text('1 hour')),
+                                            ],
+                                            onChanged: (val) {
+                                              if (val != null) {
+                                                setState(() {
+                                                  _notificationTime = val;
+                                                });
+                                              }
+                                            },
+                                          ),
+                                        ),
+                                      ],
+                                    ),
                                   ),
                                 ],
                               ),

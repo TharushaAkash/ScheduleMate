@@ -68,9 +68,8 @@ class _LmsBrowserScreenState extends State<LmsBrowserScreen> {
     }
   }
 
-  String _decodeJsResult(Object raw) {
-    var s = raw.toString();
-    // runJavaScriptReturningResult on Android returns a JSON-encoded string.
+  String _decodeJsResult(Object? raw) {
+    var s = raw?.toString() ?? '';
     if (s.startsWith('"') && s.endsWith('"')) {
       s = s
           .substring(1, s.length - 1)
@@ -110,7 +109,8 @@ class _LmsBrowserScreenState extends State<LmsBrowserScreen> {
           IconButton(
             icon: const Icon(Icons.home_rounded),
             tooltip: 'Dashboard',
-            onPressed: () => _controller.loadUrl(urlRequest: URLRequest(url: WebUri(LmsAuthService.dashboardUrl))),
+            onPressed: () => _controller.loadUrl(
+                urlRequest: URLRequest(url: WebUri(LmsAuthService.dashboardUrl))),
           ),
           IconButton(
             icon: const Icon(Icons.refresh_rounded),
@@ -146,7 +146,8 @@ class _LmsBrowserScreenState extends State<LmsBrowserScreen> {
                       ),
                       const SizedBox(height: 12),
                       FilledButton(
-                        onPressed: () => _openInExternalBrowser(_currentUrl.isEmpty ? LmsAuthService.dashboardUrl : _currentUrl),
+                        onPressed: () => _openInExternalBrowser(
+                            _currentUrl.isEmpty ? LmsAuthService.dashboardUrl : _currentUrl),
                         child: const Text('Open in browser'),
                       ),
                     ],

@@ -22,22 +22,23 @@ class DatabaseHelper {
     final path = join(dbPath, 'gpa_timetable_app.db');
     return openDatabase(
       path,
-      version: 3,
+      version: 4,
       onUpgrade: (db, oldVersion, newVersion) async {
         if (oldVersion < 3) {
-          // Earlier upgrade path dropped/recreated the older tables; keep
-          // that behaviour, and add the new announcements table without
-          // touching anything else.
           await db.execute('DROP TABLE IF EXISTS timetable_entries');
           await db.execute('DROP TABLE IF EXISTS courses');
           await db.execute('DROP TABLE IF EXISTS semesters');
           await _createTables(db);
           await _createAnnouncementsTable(db);
         }
+        if (oldVersion < 4) {
+          await _createBlockedAnnouncementsTable(db);
+        }
       },
       onCreate: (db, version) async {
         await _createTables(db);
         await _createAnnouncementsTable(db);
+        await _createBlockedAnnouncementsTable(db);
       },
     );
   }
@@ -95,10 +96,26 @@ class DatabaseHelper {
         ''');
   }
 
+  Future<void> _createBlockedAnnouncementsTable(Database db) async {
+    await db.execute('''
+          CREATE TABLE IF NOT EXISTS blocked_announcement_keys (
+            dedupeKey TEXT PRIMARY KEY
+          )
+        ''');
+  }
+
   // ---------- Announcements ----------
   Future<int> insertAnnouncementIfNew(Announcement a) async {
     final db = await database;
     try {
+      // Check if this key was previously deleted (blocked)
+      final blocked = await db.query(
+        'blocked_announcement_keys',
+        where: 'dedupeKey = ?',
+        whereArgs: [a.dedupeKey],
+      );
+      if (blocked.isNotEmpty) return 0;
+
       return await db.insert(
         'announcements',
         {...a.toMap()..remove('id'), 'dedupeKey': a.dedupeKey},
@@ -128,6 +145,18 @@ class DatabaseHelper {
 
   Future<void> deleteAnnouncement(int id) async {
     final db = await database;
+    // First, save the dedupeKey to the blocked list so it won't re-appear on next fetch
+    final rows = await db.query('announcements', where: 'id = ?', whereArgs: [id]);
+    if (rows.isNotEmpty) {
+      final key = rows.first['dedupeKey'] as String?;
+      if (key != null && key.isNotEmpty) {
+        await db.insert(
+          'blocked_announcement_keys',
+          {'dedupeKey': key},
+          conflictAlgorithm: ConflictAlgorithm.ignore,
+        );
+      }
+    }
     await db.delete('announcements', where: 'id = ?', whereArgs: [id]);
   }
 

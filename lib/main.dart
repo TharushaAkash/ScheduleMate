@@ -6,7 +6,7 @@ import 'providers/announcement_provider.dart';
 import 'providers/gpa_provider.dart';
 import 'providers/theme_provider.dart';
 import 'providers/timetable_provider.dart';
-import 'screens/home_screen.dart';
+import 'screens/auth_screen.dart';
 import 'services/notification_service.dart';
 
 Future<void> main() async {
@@ -133,7 +133,7 @@ class MyApp extends StatelessWidget {
                 ),
               ),
             ),
-            home: const HomeScreen(),
+            home: const AuthScreen(),
           );
         },
       ),
