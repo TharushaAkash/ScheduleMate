@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../providers/timetable_provider.dart';
 import '../models/timetable_entry.dart';
+import '../services/notification_service.dart';
 
 class TimetableViewScreen extends StatefulWidget {
   const TimetableViewScreen({super.key});
@@ -16,6 +18,7 @@ class _TimetableViewScreenState extends State<TimetableViewScreen>
   String? selectedDay;
   late AnimationController _animController;
   late Animation<double> _fadeAnim;
+  bool _isPushEnabled = false;
 
   final List<String> _availableDays = const [
     'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'
@@ -32,6 +35,18 @@ class _TimetableViewScreenState extends State<TimetableViewScreen>
         CurvedAnimation(parent: _animController, curve: Curves.easeOut);
     _animController.forward();
     selectedDay = _availableDays.first;
+    _loadPushSettings();
+  }
+
+  Future<void> _loadPushSettings() async {
+    final prefs = await SharedPreferences.getInstance();
+    final provider = context.read<TimetableProvider>();
+    final currentId = '${provider.selectedSemester}_${provider.selectedGroup}_${provider.selectedSubGroup}';
+    final notifiedId = prefs.getString('notified_timetable_id');
+    
+    setState(() {
+      _isPushEnabled = notifiedId == currentId;
+    });
   }
 
   @override
@@ -146,23 +161,45 @@ class _TimetableViewScreenState extends State<TimetableViewScreen>
               Padding(
                 padding: const EdgeInsets.only(right: 8),
                 child: IconButton(
-                  icon: const Icon(Icons.notifications_active_rounded),
-                  tooltip: 'Enable 30-min reminders',
+                  icon: Icon(_isPushEnabled
+                      ? Icons.notifications_active_rounded
+                      : Icons.notifications_off_rounded),
+                  color: _isPushEnabled ? primary : (isDark ? Colors.white54 : Colors.black54),
+                  tooltip: _isPushEnabled ? 'Turn Off Notifications' : 'Turn On Notifications',
                   onPressed: () async {
-                    await provider.scheduleReminders();
+                    final prefs = await SharedPreferences.getInstance();
+                    final currentId = '${provider.selectedSemester}_${provider.selectedGroup}_${provider.selectedSubGroup}';
+                    final newState = !_isPushEnabled;
+                    
+                    if (newState) {
+                      await prefs.setString('notified_timetable_id', currentId);
+                      await provider.scheduleReminders();
+                    } else {
+                      await prefs.remove('notified_timetable_id');
+                      await NotificationService.instance.cancelAll();
+                    }
+                    
+                    setState(() {
+                      _isPushEnabled = newState;
+                    });
+                    
                     if (context.mounted) {
                       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                        content: const Row(
+                        content: Row(
                           children: [
-                            Icon(Icons.check_circle_rounded, color: Colors.white),
-                            SizedBox(width: 8),
+                            Icon(
+                              newState ? Icons.check_circle_rounded : Icons.notifications_off_rounded, 
+                              color: Colors.white
+                            ),
+                            const SizedBox(width: 8),
                             Expanded(
-                              child: Text(
-                                  'Reminders set — 30 min before each class.'),
+                              child: Text(newState 
+                                ? 'Notifications enabled for this timetable.' 
+                                : 'Notifications disabled.'),
                             ),
                           ],
                         ),
-                        backgroundColor: const Color(0xFF6C63FF),
+                        backgroundColor: newState ? const Color(0xFF6C63FF) : Colors.grey.shade800,
                         behavior: SnackBarBehavior.floating,
                         shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12)),

@@ -3,6 +3,8 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:file_picker/file_picker.dart';
+
+import 'auth_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:syncfusion_flutter_pdf/pdf.dart';
 import 'package:fl_chart/fl_chart.dart';
@@ -319,12 +321,12 @@ class _GpaScreenState extends State<GpaScreen> {
                 ),
                 _buildSemesterStats(provider.semesters, isDark),
                 Padding(
-                  padding: const EdgeInsets.only(left: 20, top: 12, bottom: 8, right: 20),
+                  padding: const EdgeInsets.only(left: 20, top: 12, bottom: 16, right: 20),
                   child: Row(
                     children: [
-                      Container(width: 4, height: 20, decoration: BoxDecoration(color: theme.colorScheme.primary, borderRadius: BorderRadius.circular(2))),
-                      const SizedBox(width: 10),
                       Text('My Semesters', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: isDark ? Colors.white : Colors.black87)),
+                      const Spacer(),
+                      Text('View All', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: const Color(0xFF9C96FF))),
                     ],
                   ),
                 ),
@@ -361,22 +363,60 @@ class _GpaScreenState extends State<GpaScreen> {
                         borderRadius: BorderRadius.circular(20),
                         boxShadow: [BoxShadow(color: Colors.black.withOpacity(isDark ? 0.3 : 0.07), blurRadius: 16, offset: const Offset(0, 4))],
                       ),
-                      child: ExpansionTile(
-                        shape: const RoundedRectangleBorder(side: BorderSide.none),
-                        leading: Container(
-                          width: 44, height: 44,
-                          decoration: BoxDecoration(
-                            gradient: const LinearGradient(colors: [Color(0xFF6C63FF), Color(0xFF4A44CC)], begin: Alignment.topLeft, end: Alignment.bottomRight),
-                            borderRadius: BorderRadius.circular(12),
+                      child: Theme(
+                        data: theme.copyWith(dividerColor: Colors.transparent),
+                        child: ExpansionTile(
+                          tilePadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                          shape: const RoundedRectangleBorder(side: BorderSide.none),
+                          leading: Container(
+                            width: 48, height: 48,
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF4A44CC),
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                            child: Center(child: Text('S${semester.semesterNumber}', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16))),
                           ),
-                          child: Center(child: Text('S${semester.semesterNumber}', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold))),
-                        ),
-                        title: Text(semester.label, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: isDark ? Colors.white : Colors.black87)),
-                        subtitle: Text('GPA: ${semester.semesterGpa.toStringAsFixed(2)}  •  ${semester.totalCredits.toStringAsFixed(1)} cr', style: TextStyle(color: isDark ? Colors.white54 : Colors.black45, fontSize: 13)),
-                        trailing: IconButton(
-                          icon: const Icon(Icons.delete_outline_rounded, color: Colors.redAccent),
-                          onPressed: () => provider.deleteSemester(semester.id!),
-                        ),
+                          title: Row(
+                            children: [
+                              Flexible(
+                                child: Text(
+                                  semester.label, 
+                                  style: TextStyle(fontWeight: FontWeight.w600, fontSize: 15, color: isDark ? Colors.white : Colors.black87),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                              if (index == 0) ...[
+                                const SizedBox(width: 8),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFF4A44CC).withOpacity(0.2),
+                                    borderRadius: BorderRadius.circular(6),
+                                  ),
+                                  child: const Text('Latest', style: TextStyle(color: Color(0xFF9C96FF), fontSize: 10, fontWeight: FontWeight.bold)),
+                                ),
+                              ]
+                            ],
+                          ),
+                          subtitle: Padding(
+                            padding: const EdgeInsets.only(top: 4.0),
+                            child: Text('GPA: ${semester.semesterGpa.toStringAsFixed(2)}  •  ${semester.totalCredits.toStringAsFixed(1)} cr', style: TextStyle(color: isDark ? Colors.white54 : Colors.black45, fontSize: 13)),
+                          ),
+                          trailing: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                semester.semesterGpa.toStringAsFixed(2),
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                  color: semester.semesterGpa >= 3.25 ? const Color(0xFF4ADE80) : const Color(0xFF9C96FF),
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Icon(Icons.arrow_forward_ios_rounded, size: 14, color: isDark ? Colors.white54 : Colors.black45),
+                            ],
+                          ),
                         children: [
                           const Divider(height: 1, indent: 16, endIndent: 16),
                           ...semester.courses.map((c) => Padding(
@@ -409,23 +449,36 @@ class _GpaScreenState extends State<GpaScreen> {
                           )),
                           Padding(
                             padding: const EdgeInsets.all(16.0),
-                            child: SizedBox(
-                              width: double.infinity,
-                              child: OutlinedButton.icon(
-                                icon: const Icon(Icons.add_rounded),
-                                label: const Text('Add Module'),
-                                onPressed: () => _showAddCourseDialog(context, semester.id!),
-                                style: OutlinedButton.styleFrom(
-                                  foregroundColor: theme.colorScheme.primary,
-                                  side: BorderSide(color: theme.colorScheme.primary.withOpacity(0.5)),
-                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            child: Row(
+                              children: [
+                                Expanded(
+                                  child: OutlinedButton.icon(
+                                    icon: const Icon(Icons.add_rounded),
+                                    label: const Text('Add Module'),
+                                    onPressed: () => _showAddCourseDialog(context, semester.id!),
+                                    style: OutlinedButton.styleFrom(
+                                      foregroundColor: theme.colorScheme.primary,
+                                      side: BorderSide(color: theme.colorScheme.primary.withOpacity(0.5)),
+                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                    ),
+                                  ),
                                 ),
-                              ),
+                                const SizedBox(width: 12),
+                                IconButton(
+                                  icon: const Icon(Icons.delete_outline_rounded, color: Colors.redAccent),
+                                  onPressed: () => provider.deleteSemester(semester.id!),
+                                  style: IconButton.styleFrom(
+                                    backgroundColor: Colors.redAccent.withOpacity(0.1),
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
                         ],
                       ),
-                    );
+                    ),
+                  );
                   },
                   childCount: provider.semesters.length,
                 ),
@@ -591,6 +644,7 @@ class _GpaScreenState extends State<GpaScreen> {
       return null;
     }
 
+    AuthScreen.bypassNextLifecycleLock = true;
     final result = await FilePicker.platform.pickFiles(
       type: FileType.custom,
       allowedExtensions: ['pdf'],

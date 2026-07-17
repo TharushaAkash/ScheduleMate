@@ -1,6 +1,8 @@
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:timezone/timezone.dart' as tz;
 import 'package:timezone/data/latest_all.dart' as tz_data;
+import 'package:flutter_timezone/flutter_timezone.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../models/timetable_entry.dart';
 
@@ -18,9 +20,13 @@ class NotificationService {
 
   Future<void> init() async {
     tz_data.initializeTimeZones();
-    // If you need the device's real local timezone rather than the
-    // default UTC-based one, use the `flutter_timezone` package to fetch
-    // it and call tz.setLocalLocation(...) here.
+    try {
+      // Fixed: Removed explicit String type to avoid type mismatch with TimezoneInfo
+      final timeZoneName = await FlutterTimezone.getLocalTimezone();
+      tz.setLocalLocation(tz.getLocation(timeZoneName.toString()));
+    } catch (e) {
+      // Fallback if it fails
+    }
 
     const androidInit = AndroidInitializationSettings('@mipmap/ic_launcher');
     const iosInit = DarwinInitializationSettings(
@@ -63,7 +69,7 @@ class NotificationService {
   /// Schedules a repeating weekly notification 30 minutes before [entry]
   /// starts. Uses matchDateTimeComponents = dayOfWeekAndTime so it repeats
   /// every week automatically without re-scheduling each week.
-  Future<void> scheduleClassReminder(TimetableEntry entry) async {
+  Future<void> scheduleClassReminder(TimetableEntry entry, int minutes, int notificationId) async {
     final startParts = entry.startTime.split(':');
     if (startParts.length != 2) return;
     final hour = int.tryParse(startParts[0]);
@@ -80,11 +86,11 @@ class NotificationService {
     while (classTime.weekday != weekday) {
       classTime = classTime.add(const Duration(days: 1));
     }
-    final reminderTime = classTime.subtract(const Duration(minutes: 30));
+    final reminderTime = classTime.subtract(Duration(minutes: minutes));
 
     await _plugin.zonedSchedule(
-      entry.notificationId,
-      '${entry.moduleName} starts in 30 minutes',
+      notificationId,
+      '${entry.moduleName} starts in $minutes minutes',
       '${entry.moduleCode.isNotEmpty ? '${entry.moduleCode} • ' : ''}'
           '${entry.venue.isNotEmpty ? 'Venue: ${entry.venue} • ' : ''}'
           'Starts at ${entry.startTime}',
@@ -105,8 +111,16 @@ class NotificationService {
   }
 
   Future<void> scheduleAll(List<TimetableEntry> entries) async {
+    await cancelAll();
+
+    final prefs = await SharedPreferences.getInstance();
+    final reminderMinutes = prefs.getInt('notification_time') ?? 30;
+
     for (final e in entries) {
-      await scheduleClassReminder(e);
+      await scheduleClassReminder(e, reminderMinutes, e.notificationId);
+      if (reminderMinutes != 5) {
+        await scheduleClassReminder(e, 5, e.notificationId + 100000);
+      }
     }
   }
 
