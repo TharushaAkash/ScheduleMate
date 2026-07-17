@@ -6,6 +6,8 @@ import '../main.dart';
 import 'home_screen.dart';
 
 class AuthScreen extends StatefulWidget {
+  static bool bypassNextLifecycleLock = false;
+
   const AuthScreen({super.key});
 
   @override
@@ -35,6 +37,9 @@ class _AuthScreenState extends State<AuthScreen> with WidgetsBindingObserver {
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.paused) {
+      if (AuthScreen.bypassNextLifecycleLock) {
+        return;
+      }
       if (_isAuthenticated) {
         setState(() {
           _isAuthenticated = false;
@@ -42,6 +47,10 @@ class _AuthScreenState extends State<AuthScreen> with WidgetsBindingObserver {
         });
       }
     } else if (state == AppLifecycleState.resumed) {
+      if (AuthScreen.bypassNextLifecycleLock) {
+        AuthScreen.bypassNextLifecycleLock = false;
+        return;
+      }
       if (!_isAuthenticated && !_isAuthenticating) {
         _authenticate();
       }
