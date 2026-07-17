@@ -77,9 +77,21 @@ class TimetableProvider extends ChangeNotifier {
   }
 
   Future<void> loadSavedTimetable(String semester, String groupName, String subGroup) async {
+    selectedSemester = semester;
+    selectedGroup = groupName;
+    selectedSubGroup = subGroup;
     currentTimetable =
         await DatabaseHelper.instance.getTimetable(semester, groupName, subGroup);
     notifyListeners();
+  }
+
+  Future<void> loadDefaultTimetable() async {
+    if (currentTimetable.isNotEmpty) return;
+    final profiles = await DatabaseHelper.instance.getSavedTimetableProfiles();
+    if (profiles.isNotEmpty) {
+      final p = profiles.first;
+      await loadSavedTimetable(p['semester']!, p['groupName']!, p['subGroup']!);
+    }
   }
 
   Future<void> scheduleReminders() async {
