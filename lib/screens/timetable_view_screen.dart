@@ -420,17 +420,21 @@ class _DayHeaderDelegate extends SliverPersistentHeaderDelegate {
       color: isDark ? const Color(0xFF1E1E2E) : const Color(0xFFF8F7FF),
       padding: const EdgeInsets.symmetric(horizontal: 16),
       alignment: Alignment.center,
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceAround,
-        children: List.generate(availableDays.length, (i) {
-          final day = availableDays[i];
-          final short = dayShort[i];
-          final isSelected = day == selectedDay;
-          final hasClasses = (grouped[day] ?? [])
-              .where((m) => m.moduleName.isNotEmpty || m.moduleCode.isNotEmpty)
-              .isNotEmpty;
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        physics: const BouncingScrollPhysics(),
+        child: Row(
+          children: List.generate(availableDays.length, (i) {
+            final day = availableDays[i];
+            final short = dayShort[i];
+            final isSelected = day == selectedDay;
+            final hasClasses = (grouped[day] ?? [])
+                .where((m) => m.moduleName.isNotEmpty || m.moduleCode.isNotEmpty)
+                .isNotEmpty;
 
-          return GestureDetector(
+            return Padding(
+              padding: EdgeInsets.only(right: i == availableDays.length - 1 ? 0 : 12),
+              child: GestureDetector(
             onTap: () => onDaySelected(day),
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 200),
@@ -485,11 +489,13 @@ class _DayHeaderDelegate extends SliverPersistentHeaderDelegate {
                 ],
               ),
             ),
-          );
-        }),
-      ),
-    );
-  }
+          ),
+        );
+      }),
+    ),
+  ),
+);
+}
 }
 
 class _ClassCard extends StatelessWidget {
