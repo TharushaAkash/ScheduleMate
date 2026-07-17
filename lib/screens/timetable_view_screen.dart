@@ -21,10 +21,10 @@ class _TimetableViewScreenState extends State<TimetableViewScreen>
   bool _isPushEnabled = false;
 
   final List<String> _availableDays = const [
-    'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'
+    'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'
   ];
 
-  final List<String> _dayShort = const ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'];
+  final List<String> _dayShort = const ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
   @override
   void initState() {
