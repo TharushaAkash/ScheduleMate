@@ -1,6 +1,8 @@
 import 'dart:convert';
 
 import 'package:file_picker/file_picker.dart';
+
+import 'auth_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -52,6 +54,7 @@ class _TimetableUploadScreenState extends State<TimetableUploadScreen>
   }
 
   Future<void> _pickFile() async {
+    AuthScreen.bypassNextLifecycleLock = true;
     final result = await FilePicker.platform.pickFiles(
       type: FileType.custom,
       allowedExtensions: ['html', 'htm'],

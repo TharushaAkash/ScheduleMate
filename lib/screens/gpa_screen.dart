@@ -3,6 +3,8 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:file_picker/file_picker.dart';
+
+import 'auth_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:syncfusion_flutter_pdf/pdf.dart';
 import 'package:fl_chart/fl_chart.dart';
@@ -642,6 +644,7 @@ class _GpaScreenState extends State<GpaScreen> {
       return null;
     }
 
+    AuthScreen.bypassNextLifecycleLock = true;
     final result = await FilePicker.platform.pickFiles(
       type: FileType.custom,
       allowedExtensions: ['pdf'],
