@@ -280,8 +280,8 @@ class TimetableParser {
                  String moduleContent = getCellText(1);
                  
                  List<String> details = [];
-                 for (int c = 2; c < numCols; c++) {
-                   String text = getCellText(c);
+                 for (int r = 2; r < detailRows.length; r++) {
+                   String text = getCellText(r);
                    if (text.isNotEmpty) details.add(text);
                  }
                  
