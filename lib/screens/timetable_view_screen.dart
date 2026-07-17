@@ -35,7 +35,12 @@ class _TimetableViewScreenState extends State<TimetableViewScreen>
         CurvedAnimation(parent: _animController, curve: Curves.easeOut);
     _animController.forward();
     selectedDay = _availableDays.first;
-    _loadPushSettings();
+    
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<TimetableProvider>().loadDefaultTimetable().then((_) {
+        _loadPushSettings();
+      });
+    });
   }
 
   Future<void> _loadPushSettings() async {

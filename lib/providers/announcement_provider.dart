@@ -93,7 +93,7 @@ class AnnouncementProvider extends ChangeNotifier {
 
         final found = AnnouncementParser.parse(htmlBody, currentUrl);
         var newCount = 0;
-        for (final a in found) {
+        for (final a in found.reversed) {
           final inserted = await DatabaseHelper.instance.insertAnnouncementIfNew(a);
           if (inserted > 0) newCount++;
         }
