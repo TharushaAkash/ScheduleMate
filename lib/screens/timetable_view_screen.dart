@@ -162,59 +162,7 @@ class _TimetableViewScreenState extends State<TimetableViewScreen>
                   color: isDark ? Colors.white : Colors.black87),
               onPressed: () => Navigator.pop(context),
             ),
-            actions: [
-              Padding(
-                padding: const EdgeInsets.only(right: 8),
-                child: IconButton(
-                  icon: Icon(_isPushEnabled
-                      ? Icons.notifications_active_rounded
-                      : Icons.notifications_off_rounded),
-                  color: _isPushEnabled ? primary : (isDark ? Colors.white54 : Colors.black54),
-                  tooltip: _isPushEnabled ? 'Turn Off Notifications' : 'Turn On Notifications',
-                  onPressed: () async {
-                    final prefs = await SharedPreferences.getInstance();
-                    final currentId = '${provider.selectedSemester}_${provider.selectedGroup}_${provider.selectedSubGroup}';
-                    final newState = !_isPushEnabled;
-                    
-                    if (newState) {
-                      await prefs.setString('notified_timetable_id', currentId);
-                      await provider.scheduleReminders();
-                    } else {
-                      await prefs.remove('notified_timetable_id');
-                      await NotificationService.instance.cancelAll();
-                    }
-                    
-                    setState(() {
-                      _isPushEnabled = newState;
-                    });
-                    
-                    if (context.mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                        content: Row(
-                          children: [
-                            Icon(
-                              newState ? Icons.check_circle_rounded : Icons.notifications_off_rounded, 
-                              color: Colors.white
-                            ),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: Text(newState 
-                                ? 'Notifications enabled for this timetable.' 
-                                : 'Notifications disabled.'),
-                            ),
-                          ],
-                        ),
-                        backgroundColor: newState ? const Color(0xFF6C63FF) : Colors.grey.shade800,
-                        behavior: SnackBarBehavior.floating,
-                        shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12)),
-                        margin: const EdgeInsets.all(16),
-                      ));
-                    }
-                  },
-                ),
-              ),
-            ],
+
             flexibleSpace: FlexibleSpaceBar(
               titlePadding: const EdgeInsets.only(left: 60, bottom: 16),
               title: Text(
