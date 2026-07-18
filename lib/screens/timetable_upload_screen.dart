@@ -8,6 +8,8 @@ import 'package:provider/provider.dart';
 
 import '../providers/timetable_provider.dart';
 import '../services/database_helper.dart';
+import '../services/notification_service.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'timetable_view_screen.dart';
 
 class TimetableUploadScreen extends StatefulWidget {
@@ -26,6 +28,7 @@ class _TimetableUploadScreenState extends State<TimetableUploadScreen>
   String? _selectedSubGroup;
 
   List<Map<String, String>> _savedProfiles = [];
+  String? _notifiedId;
   late AnimationController _animController;
   late Animation<double> _fadeAnim;
 
@@ -48,8 +51,18 @@ class _TimetableUploadScreenState extends State<TimetableUploadScreen>
 
   Future<void> _loadSavedProfiles() async {
     final profiles = await DatabaseHelper.instance.getSavedTimetableProfiles();
+    final prefs = await SharedPreferences.getInstance();
+    final semester = prefs.getString('notified_semester');
+    final group = prefs.getString('notified_group');
+    final subGroup = prefs.getString('notified_subgroup');
+    final notifiedId = (semester != null && group != null && subGroup != null)
+        ? '${semester}_${group}_${subGroup}'
+        : null;
     if (mounted) {
-      setState(() => _savedProfiles = profiles);
+      setState(() {
+        _savedProfiles = profiles;
+        _notifiedId = notifiedId;
+      });
     }
   }
 
@@ -207,6 +220,8 @@ class _TimetableUploadScreenState extends State<TimetableUploadScreen>
                                     await context
                                         .read<TimetableProvider>()
                                         .scheduleReminders();
+                                    await NotificationService.instance
+                                        .showTestNotification();
                                     if (!mounted) return;
                                     await _loadSavedProfiles();
                                     Navigator.of(context).push(MaterialPageRoute(
@@ -239,10 +254,70 @@ class _TimetableUploadScreenState extends State<TimetableUploadScreen>
                       ..._savedProfiles.asMap().entries.map((e) {
                         final i = e.key;
                         final p = e.value;
+                        final currentId = '${p['semester']}_${p['groupName']}_${p['subGroup']}';
                         return _SavedTimetableCard(
                           profile: p,
                           index: i,
                           isDark: isDark,
+                          isNotified: _notifiedId == currentId,
+                          onToggleNotification: () async {
+                            final prefs = await SharedPreferences.getInstance();
+                            final isCurrentlyNotified = _notifiedId == currentId;
+                            if (isCurrentlyNotified) {
+                              await prefs.remove('notified_semester');
+                              await prefs.remove('notified_group');
+                              await prefs.remove('notified_subgroup');
+                              await NotificationService.instance.cancelAll();
+                              setState(() => _notifiedId = null);
+                              if (context.mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                                  content: const Row(
+                                    children: [
+                                      Icon(Icons.notifications_off_rounded, color: Colors.white),
+                                      SizedBox(width: 8),
+                                      Text('Notifications disabled.'),
+                                    ],
+                                  ),
+                                  backgroundColor: Colors.grey.shade800,
+                                  behavior: SnackBarBehavior.floating,
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                  margin: const EdgeInsets.all(16),
+                                ));
+                              }
+                            } else {
+                              await prefs.setString('notified_semester', p['semester']!);
+                              await prefs.setString('notified_group', p['groupName']!);
+                              await prefs.setString('notified_subgroup', p['subGroup']!);
+                              await context.read<TimetableProvider>().loadSavedTimetable(p['semester']!, p['groupName']!, p['subGroup']!);
+                              // scheduleReminders() now returns exact alarm times
+                              final summary = await context.read<TimetableProvider>().scheduleReminders();
+                              await NotificationService.instance.showTestNotification();
+                              setState(() => _notifiedId = currentId);
+                              if (context.mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                                  content: Row(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      const Icon(Icons.alarm_on_rounded, color: Colors.white, size: 20),
+                                      const SizedBox(width: 8),
+                                      Expanded(
+                                        child: Text(
+                                          summary ?? 'Notifications enabled!',
+                                          style: const TextStyle(fontSize: 12, height: 1.5),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  backgroundColor: const Color(0xFF6C63FF),
+                                  behavior: SnackBarBehavior.floating,
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                  margin: const EdgeInsets.all(16),
+                                  duration: const Duration(seconds: 6),
+                                ));
+                              }
+                            }
+
+                          },
                           onTap: () async {
                             await context
                                 .read<TimetableProvider>()
@@ -485,15 +560,19 @@ class _SavedTimetableCard extends StatelessWidget {
   final Map<String, String> profile;
   final int index;
   final bool isDark;
+  final bool isNotified;
   final VoidCallback onTap;
   final VoidCallback onDelete;
+  final VoidCallback onToggleNotification;
 
   const _SavedTimetableCard({
     required this.profile,
     required this.index,
     required this.isDark,
+    required this.isNotified,
     required this.onTap,
     required this.onDelete,
+    required this.onToggleNotification,
   });
 
   static const _colors = [
@@ -563,6 +642,14 @@ class _SavedTimetableCard extends StatelessWidget {
                       ),
                     ],
                   ),
+                ),
+                IconButton(
+                  icon: Icon(
+                    isNotified ? Icons.notifications_active_rounded : Icons.notifications_off_rounded,
+                    color: isNotified ? Theme.of(context).colorScheme.primary : (isDark ? Colors.white38 : Colors.black38),
+                    size: 22,
+                  ),
+                  onPressed: onToggleNotification,
                 ),
                 IconButton(
                   icon: const Icon(Icons.delete_outline_rounded,

@@ -64,6 +64,13 @@ class TimetableProvider extends ChangeNotifier {
     currentTimetable = entries;
 
     await DatabaseHelper.instance.replaceTimetableEntries(entries);
+
+    // Save the notification prefs so scheduleReminders() can find them.
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('notified_semester', semester);
+    await prefs.setString('notified_group', group);
+    await prefs.setString('notified_subgroup', subGroup);
+
     notifyListeners();
   }
 
@@ -72,6 +79,8 @@ class TimetableProvider extends ChangeNotifier {
     if (index != -1) {
       currentTimetable[index] = updatedEntry;
       await DatabaseHelper.instance.updateTimetableEntry(updatedEntry);
+      // Re-schedule notifications so edited times take effect immediately.
+      await scheduleReminders();
       notifyListeners();
     }
   }
@@ -94,16 +103,20 @@ class TimetableProvider extends ChangeNotifier {
     }
   }
 
-  Future<void> scheduleReminders() async {
+  /// Schedules reminders for the currently notified timetable profile.
+  /// Returns a debug summary string (alarm times per class) for display.
+  Future<String?> scheduleReminders() async {
     final prefs = await SharedPreferences.getInstance();
-    final notifiedId = prefs.getString('notified_timetable_id');
-    if (notifiedId == null) return;
-    
-    final parts = notifiedId.split('_');
-    if (parts.length == 3) {
-      final entries = await DatabaseHelper.instance.getTimetable(parts[0], parts[1], parts[2]);
-      await NotificationService.instance.scheduleAll(entries);
+    final semester = prefs.getString('notified_semester');
+    final group = prefs.getString('notified_group');
+    final subGroup = prefs.getString('notified_subgroup');
+    if (semester == null || group == null || subGroup == null) {
+      // No timetable selected for notifications yet — nothing to do.
+      return null;
     }
+    final entries = await DatabaseHelper.instance.getTimetable(semester, group, subGroup);
+    if (entries.isEmpty) return null;
+    return await NotificationService.instance.scheduleAll(entries);
   }
 
   /// Groups the current timetable's classes by day for card display,
