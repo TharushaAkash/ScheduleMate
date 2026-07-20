@@ -27,6 +27,17 @@ Perfect for students who want to:
 
 ---
 
+## 📸 Screenshots
+
+<div align="center">
+  <img src="ss/Screenshot%202026-07-20%20162141.png" width="220" />
+  <img src="ss/Screenshot%202026-07-20%20162219.png" width="220" />
+  <img src="ss/Screenshot%202026-07-20%20162236.png" width="220" />
+  <img src="ss/Screenshot%202026-07-20%20162254.png" width="220" />
+</div>
+
+---
+
 ## ✨ Key Features
 
 <table>
