@@ -4,7 +4,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../providers/timetable_provider.dart';
 import '../models/timetable_entry.dart';
-import '../services/notification_service.dart';
 
 class TimetableViewScreen extends StatefulWidget {
   const TimetableViewScreen({super.key});
@@ -47,7 +46,12 @@ class _TimetableViewScreenState extends State<TimetableViewScreen>
     final prefs = await SharedPreferences.getInstance();
     final provider = context.read<TimetableProvider>();
     final currentId = '${provider.selectedSemester}_${provider.selectedGroup}_${provider.selectedSubGroup}';
-    final notifiedId = prefs.getString('notified_timetable_id');
+    final semester = prefs.getString('notified_semester');
+    final group = prefs.getString('notified_group');
+    final subGroup = prefs.getString('notified_subgroup');
+    final notifiedId = (semester != null && group != null && subGroup != null)
+        ? '${semester}_${group}_$subGroup'
+        : null;
     
     setState(() {
       _isPushEnabled = notifiedId == currentId;

@@ -4,6 +4,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../providers/theme_provider.dart';
 import '../providers/timetable_provider.dart';
+import '../providers/gpa_provider.dart';
+import '../services/backup_service.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -18,6 +20,7 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
   late AnimationController _animController;
   late Animation<double> _slideAnim;
   int _notificationTime = 30;
+  bool _useBiometrics = true;
 
   @override
   void initState() {
@@ -42,6 +45,7 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
       _studentIdController.text = prefs.getString('student_id') ?? '';
       _studentNameController.text = prefs.getString('student_name') ?? '';
       _notificationTime = prefs.getInt('notification_time') ?? 30;
+      _useBiometrics = prefs.getBool('use_biometrics') ?? true;
     });
   }
 
@@ -50,6 +54,7 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
     await prefs.setString('student_id', _studentIdController.text.trim());
     await prefs.setString('student_name', _studentNameController.text.trim());
     await prefs.setInt('notification_time', _notificationTime);
+    await prefs.setBool('use_biometrics', _useBiometrics);
     if (mounted) {
       Provider.of<TimetableProvider>(context, listen: false).scheduleReminders();
       ScaffoldMessenger.of(context).showSnackBar(
@@ -83,6 +88,7 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
     final primary = theme.colorScheme.primary;
+    final backupService = Provider.of<BackupService>(context);
 
     return Scaffold(
       backgroundColor: isDark ? const Color(0xFF1E1E2E) : const Color(0xFFF8F7FF),
@@ -129,9 +135,9 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
                       ),
                       const SizedBox(height: 12),
                       Text(
-                        _studentNameController.text.isNotEmpty
-                            ? _studentNameController.text
-                            : 'Your Profile',
+                        backupService.isSignedIn && backupService.currentUser?.displayName != null
+                            ? backupService.currentUser!.displayName!
+                            : (_studentNameController.text.isNotEmpty ? _studentNameController.text : 'Your Profile'),
                         style: const TextStyle(
                           fontSize: 22,
                           fontWeight: FontWeight.bold,
@@ -288,6 +294,60 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
                                             borderRadius: BorderRadius.circular(12),
                                           ),
                                           child: Icon(
+                                            Icons.fingerprint_rounded,
+                                            color: primary,
+                                            size: 22,
+                                          ),
+                                        ),
+                                        const SizedBox(width: 16),
+                                        Expanded(
+                                          child: Column(
+                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                            children: [
+                                              Text(
+                                                'App Lock',
+                                                style: TextStyle(
+                                                  fontWeight: FontWeight.w600,
+                                                  fontSize: 15,
+                                                  color: isDark ? Colors.white : Colors.black87,
+                                                ),
+                                              ),
+                                              Text(
+                                                'Require authentication on startup',
+                                                style: TextStyle(
+                                                  fontSize: 12,
+                                                  color: isDark ? Colors.white54 : Colors.black38,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                        Switch.adaptive(
+                                          value: _useBiometrics,
+                                          onChanged: (val) async {
+                                            setState(() {
+                                              _useBiometrics = val;
+                                            });
+                                            final prefs = await SharedPreferences.getInstance();
+                                            await prefs.setBool('use_biometrics', val);
+                                          },
+                                          activeColor: primary,
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  Divider(color: Colors.grey.withOpacity(0.2), height: 1),
+                                  Padding(
+                                    padding: const EdgeInsets.symmetric(vertical: 8),
+                                    child: Row(
+                                      children: [
+                                        Container(
+                                          padding: const EdgeInsets.all(10),
+                                          decoration: BoxDecoration(
+                                            color: primary.withOpacity(0.1),
+                                            borderRadius: BorderRadius.circular(12),
+                                          ),
+                                          child: Icon(
                                             Icons.access_time_rounded,
                                             color: primary,
                                             size: 22,
@@ -336,6 +396,190 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
                                 ],
                               ),
                             ),
+                          );
+                        },
+                      ),
+                      const SizedBox(height: 40),
+                      Consumer<BackupService>(
+                        builder: (context, backupService, _) {
+                          return Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const _SectionHeader(title: 'Google Drive Backup', icon: Icons.cloud_done_rounded),
+                              const SizedBox(height: 16),
+                              Container(
+                                decoration: BoxDecoration(
+                                  color: isDark ? const Color(0xFF252535) : Colors.white,
+                                  borderRadius: BorderRadius.circular(20),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.black.withOpacity(isDark ? 0.3 : 0.06),
+                                      blurRadius: 16,
+                                      offset: const Offset(0, 4),
+                                    ),
+                                  ],
+                                ),
+                                padding: const EdgeInsets.all(20),
+                                child: Column(
+                                  children: [
+                                    if (!backupService.isSignedIn)
+                                      SizedBox(
+                                        width: double.infinity,
+                                        height: 50,
+                                        child: ElevatedButton.icon(
+                                          onPressed: () async {
+                                            try {
+                                              await backupService.signIn();
+                                            } catch (e) {
+                                              if (context.mounted) {
+                                                ScaffoldMessenger.of(context).showSnackBar(
+                                                  SnackBar(
+                                                    content: Text('Sign-in failed: $e'),
+                                                    backgroundColor: Colors.red,
+                                                    duration: const Duration(seconds: 6),
+                                                  ),
+                                                );
+                                              }
+                                            }
+                                          },
+                                          icon: const Icon(Icons.login),
+                                          label: const Text('Sign in with Google'),
+                                          style: ElevatedButton.styleFrom(
+                                            backgroundColor: primary,
+                                            foregroundColor: Colors.white,
+                                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                          ),
+                                        ),
+                                      )
+                                    else
+                                      Column(
+                                        children: [
+                                          Row(
+                                            children: [
+                                              CircleAvatar(
+                                                radius: 24,
+                                                backgroundImage: backupService.currentUser?.photoUrl != null
+                                                    ? NetworkImage(backupService.currentUser!.photoUrl!)
+                                                    : null,
+                                                child: backupService.currentUser?.photoUrl == null
+                                                    ? const Icon(Icons.person)
+                                                    : null,
+                                              ),
+                                              const SizedBox(width: 16),
+                                              Expanded(
+                                                child: Column(
+                                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                                  children: [
+                                                    Text(
+                                                      backupService.currentUser?.displayName ?? 'Signed In',
+                                                      style: TextStyle(
+                                                        fontWeight: FontWeight.bold,
+                                                        fontSize: 16,
+                                                        color: isDark ? Colors.white : Colors.black87,
+                                                      ),
+                                                    ),
+                                                    Text(
+                                                      backupService.currentUser?.email ?? '',
+                                                      style: TextStyle(
+                                                        fontSize: 13,
+                                                        color: isDark ? Colors.white70 : Colors.black54,
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ),
+                                              ),
+                                              IconButton(
+                                                icon: const Icon(Icons.logout_rounded, color: Colors.redAccent),
+                                                onPressed: () => backupService.signOut(),
+                                                tooltip: 'Sign Out',
+                                              ),
+                                            ],
+                                          ),
+                                          const SizedBox(height: 24),
+                                          Row(
+                                            children: [
+                                              Expanded(
+                                                child: ElevatedButton.icon(
+                                                  onPressed: () async {
+                                                    try {
+                                                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Backing up to Drive...')));
+                                                      await backupService.backupDatabase();
+                                                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+                                                        content: Text('Backup Successful!'),
+                                                        backgroundColor: Colors.green,
+                                                      ));
+                                                    } catch (e) {
+                                                      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                                                        content: Text('Backup Failed: $e'),
+                                                        backgroundColor: Colors.red,
+                                                      ));
+                                                    }
+                                                  },
+                                                  icon: const Icon(Icons.cloud_upload_rounded),
+                                                  label: const Text('Backup'),
+                                                  style: ElevatedButton.styleFrom(
+                                                    backgroundColor: Colors.blueAccent,
+                                                    foregroundColor: Colors.white,
+                                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                                    padding: const EdgeInsets.symmetric(vertical: 12),
+                                                  ),
+                                                ),
+                                              ),
+                                              const SizedBox(width: 12),
+                                              Expanded(
+                                                child: ElevatedButton.icon(
+                                                  onPressed: () async {
+                                                    final confirm = await showDialog<bool>(
+                                                      context: context,
+                                                      builder: (c) => AlertDialog(
+                                                        title: const Text('Restore Backup'),
+                                                        content: const Text('This will overwrite all local data with the cloud backup. Do you want to continue?'),
+                                                        actions: [
+                                                          TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('Cancel')),
+                                                          TextButton(
+                                                            onPressed: () => Navigator.pop(c, true),
+                                                            child: const Text('Restore', style: TextStyle(color: Colors.redAccent)),
+                                                          ),
+                                                        ],
+                                                      ),
+                                                    );
+                                                    if (confirm == true) {
+                                                      try {
+                                                        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Restoring from Drive...')));
+                                                        await backupService.restoreDatabase();
+                                                        Provider.of<GpaProvider>(context, listen: false).loadSemesters();
+                                                        Provider.of<TimetableProvider>(context, listen: false).loadDefaultTimetable();
+                                                        _loadProfileData();
+                                                        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+                                                          content: Text('Restore Successful!'),
+                                                          backgroundColor: Colors.green,
+                                                        ));
+                                                      } catch (e) {
+                                                        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                                                          content: Text('Restore Failed: $e'),
+                                                          backgroundColor: Colors.red,
+                                                        ));
+                                                      }
+                                                    }
+                                                  },
+                                                  icon: const Icon(Icons.cloud_download_rounded),
+                                                  label: const Text('Restore'),
+                                                  style: ElevatedButton.styleFrom(
+                                                    backgroundColor: Colors.orangeAccent,
+                                                    foregroundColor: Colors.white,
+                                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                                    padding: const EdgeInsets.symmetric(vertical: 12),
+                                                  ),
+                                                ),
+                                              ),
+                                            ],
+                                          )
+                                        ],
+                                      ),
+                                  ],
+                                ),
+                              ),
+                            ],
                           );
                         },
                       ),

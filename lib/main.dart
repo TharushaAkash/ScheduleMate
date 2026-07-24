@@ -8,6 +8,7 @@ import 'providers/theme_provider.dart';
 import 'providers/timetable_provider.dart';
 import 'screens/auth_screen.dart';
 import 'services/notification_service.dart';
+import 'services/backup_service.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -16,6 +17,7 @@ Future<void> main() async {
     statusBarIconBrightness: Brightness.light,
   ));
   await NotificationService.instance.init();
+  await BackupService.instance.init();
   runApp(const MyApp());
 }
 
@@ -41,6 +43,7 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => TimetableProvider()),
         ChangeNotifierProvider(create: (_) => ThemeProvider()),
         ChangeNotifierProvider(create: (_) => AnnouncementProvider()),
+        ChangeNotifierProvider.value(value: BackupService.instance),
       ],
       child: Consumer<ThemeProvider>(
         builder: (context, themeProvider, child) {

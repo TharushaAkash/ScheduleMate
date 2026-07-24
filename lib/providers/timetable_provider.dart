@@ -12,6 +12,7 @@ class TimetableProvider extends ChangeNotifier {
   String? selectedGroup;
   String? selectedSubGroup;
   List<TimetableEntry> currentTimetable = [];
+  List<TimetableEntry> notifiedTimetable = [];
 
   bool get hasParsedData => _parsed != null && _parsed!.entries.isNotEmpty;
 
@@ -55,6 +56,21 @@ class TimetableProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  Future<void> loadNotifiedTimetable() async {
+    final prefs = await SharedPreferences.getInstance();
+    final semester = prefs.getString('notified_semester');
+    final group = prefs.getString('notified_group');
+    final subGroup = prefs.getString('notified_subgroup');
+
+    if (semester != null && group != null && subGroup != null) {
+      notifiedTimetable =
+          await DatabaseHelper.instance.getTimetable(semester, group, subGroup);
+    } else {
+      notifiedTimetable = [];
+    }
+    notifyListeners();
+  }
+
   Future<void> selectTimetable(String semester, String group, String subGroup) async {
     selectedSemester = semester;
     selectedGroup = group;
@@ -71,7 +87,7 @@ class TimetableProvider extends ChangeNotifier {
     await prefs.setString('notified_group', group);
     await prefs.setString('notified_subgroup', subGroup);
 
-    notifyListeners();
+    await loadNotifiedTimetable();
   }
 
   Future<void> updateEntry(TimetableEntry updatedEntry) async {
@@ -81,6 +97,7 @@ class TimetableProvider extends ChangeNotifier {
       await DatabaseHelper.instance.updateTimetableEntry(updatedEntry);
       // Re-schedule notifications so edited times take effect immediately.
       await scheduleReminders();
+      await loadNotifiedTimetable();
       notifyListeners();
     }
   }
@@ -95,11 +112,26 @@ class TimetableProvider extends ChangeNotifier {
   }
 
   Future<void> loadDefaultTimetable() async {
-    if (currentTimetable.isNotEmpty) return;
-    final profiles = await DatabaseHelper.instance.getSavedTimetableProfiles();
-    if (profiles.isNotEmpty) {
-      final p = profiles.first;
-      await loadSavedTimetable(p['semester']!, p['groupName']!, p['subGroup']!);
+    await loadNotifiedTimetable();
+
+    if (currentTimetable.isEmpty) {
+      final prefs = await SharedPreferences.getInstance();
+      final semester = prefs.getString('notified_semester');
+      final group = prefs.getString('notified_group');
+      final subGroup = prefs.getString('notified_subgroup');
+
+      if (semester != null && group != null && subGroup != null && notifiedTimetable.isNotEmpty) {
+        selectedSemester = semester;
+        selectedGroup = group;
+        selectedSubGroup = subGroup;
+        currentTimetable = List.from(notifiedTimetable);
+      } else {
+        final profiles = await DatabaseHelper.instance.getSavedTimetableProfiles();
+        if (profiles.isNotEmpty) {
+          final p = profiles.first;
+          await loadSavedTimetable(p['semester']!, p['groupName']!, p['subGroup']!);
+        }
+      }
     }
   }
 

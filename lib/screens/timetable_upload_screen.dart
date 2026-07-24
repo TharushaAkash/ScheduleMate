@@ -268,6 +268,9 @@ class _TimetableUploadScreenState extends State<TimetableUploadScreen>
                               await prefs.remove('notified_group');
                               await prefs.remove('notified_subgroup');
                               await NotificationService.instance.cancelAll();
+                              if (context.mounted) {
+                                await context.read<TimetableProvider>().loadNotifiedTimetable();
+                              }
                               setState(() => _notifiedId = null);
                               if (context.mounted) {
                                 ScaffoldMessenger.of(context).showSnackBar(SnackBar(
@@ -288,9 +291,12 @@ class _TimetableUploadScreenState extends State<TimetableUploadScreen>
                               await prefs.setString('notified_semester', p['semester']!);
                               await prefs.setString('notified_group', p['groupName']!);
                               await prefs.setString('notified_subgroup', p['subGroup']!);
-                              await context.read<TimetableProvider>().loadSavedTimetable(p['semester']!, p['groupName']!, p['subGroup']!);
+                              if (context.mounted) {
+                                await context.read<TimetableProvider>().loadSavedTimetable(p['semester']!, p['groupName']!, p['subGroup']!);
+                                await context.read<TimetableProvider>().loadNotifiedTimetable();
+                              }
                               // scheduleReminders() now returns exact alarm times
-                              final summary = await context.read<TimetableProvider>().scheduleReminders();
+                              final summary = context.mounted ? await context.read<TimetableProvider>().scheduleReminders() : null;
                               await NotificationService.instance.showTestNotification();
                               setState(() => _notifiedId = currentId);
                               if (context.mounted) {
@@ -356,9 +362,21 @@ class _TimetableUploadScreenState extends State<TimetableUploadScreen>
                               ),
                             );
                             if (confirm == true) {
+                              final prefs = await SharedPreferences.getInstance();
+                              final notifiedSem = prefs.getString('notified_semester');
+                              final notifiedGrp = prefs.getString('notified_group');
+                              if (notifiedSem == p['semester'] && notifiedGrp == p['groupName']) {
+                                await prefs.remove('notified_semester');
+                                await prefs.remove('notified_group');
+                                await prefs.remove('notified_subgroup');
+                                await NotificationService.instance.cancelAll();
+                              }
                               await DatabaseHelper.instance
                                   .deleteTimetableProfile(
                                       p['semester']!, p['groupName']!);
+                              if (context.mounted) {
+                                await context.read<TimetableProvider>().loadNotifiedTimetable();
+                              }
                               _loadSavedProfiles();
                             }
                           },

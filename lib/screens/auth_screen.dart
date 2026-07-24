@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:local_auth/local_auth.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../main.dart';
 import 'home_screen.dart';
@@ -58,6 +59,18 @@ class _AuthScreenState extends State<AuthScreen> with WidgetsBindingObserver {
   }
 
   Future<void> _authenticate() async {
+    final prefs = await SharedPreferences.getInstance();
+    final useBiometrics = prefs.getBool('use_biometrics') ?? true;
+
+    if (!useBiometrics) {
+      if (mounted) {
+        setState(() {
+          _isAuthenticated = true;
+        });
+      }
+      return;
+    }
+
     bool authenticated = false;
     try {
       setState(() {

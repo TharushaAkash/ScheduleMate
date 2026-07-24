@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "260983937275",
+    "project_id": "schedulemate-fa9ee",
+    "storage_bucket": "schedulemate-fa9ee.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:260983937275:android:750724b6a7cb4ae6f7f85e",
+        "android_client_info": {
+          "package_name": "com.example.gpa_timetable_app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "260983937275-628pefl9kq51numi8dik5e7vmhn2elol.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.gpa_timetable_app",
+            "certificate_hash": "3cbc2123a00cddd50a4866e1847ca63ae60877a8"
+          }
+        },
+        {
+          "client_id": "260983937275-eh4h2ngq7nki1ogrbbtqfuioemr1c3r9.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBLFX-F7oCdX4-S8keF6wYv5rSDSEbmeaQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "260983937275-3k3pqokmt882eslge2ehagsh3varbkba.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

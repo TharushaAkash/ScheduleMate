@@ -11,10 +11,12 @@ import 'package:fl_chart/fl_chart.dart';
 
 import '../models/course.dart';
 import '../models/semester.dart';
+import '../models/timetable_entry.dart';
 import '../providers/gpa_provider.dart';
-import 'timetable_view_screen.dart';
+import '../providers/timetable_provider.dart';
 import 'timetable_upload_screen.dart';
 import 'ca_marks_screen.dart';
+import '../services/backup_service.dart';
 
 class GpaScreen extends StatefulWidget {
   const GpaScreen({super.key});
@@ -32,6 +34,7 @@ class _GpaScreenState extends State<GpaScreen> {
     _loadProfileData();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<GpaProvider>().loadSemesters();
+      context.read<TimetableProvider>().loadDefaultTimetable();
     });
   }
 
@@ -300,9 +303,224 @@ class _GpaScreenState extends State<GpaScreen> {
     );
   }
 
+  _NextLectureInfo? _getNextLecture(List<TimetableEntry> entries) {
+    if (entries.isEmpty) return null;
+
+    final now = DateTime.now();
+    final nowInMinutes = now.hour * 60 + now.minute;
+
+    // Rule: "ude 8.30 ta tiyenvanm ude 5n passe penna oni"
+    // If before 5:00 AM (300 minutes), do not show today's 8:30 AM lecture yet.
+    if (nowInMinutes < 300) {
+      return null;
+    }
+
+    const weekdays = [
+      'Monday',
+      'Tuesday',
+      'Wednesday',
+      'Thursday',
+      'Friday',
+      'Saturday',
+      'Sunday'
+    ];
+    final todayName = weekdays[now.weekday - 1];
+
+    // Rule: "heta tiyena eka ada enna baa" -> Only check TODAY's lectures!
+    final todayEntries = entries
+        .where((e) => e.day.trim().toLowerCase() == todayName.toLowerCase())
+        .toList();
+    if (todayEntries.isEmpty) return null;
+
+    int parseMinutes(String timeStr) {
+      try {
+        final cleaned = timeStr.trim();
+        final parts = cleaned.split(':');
+        final h = int.parse(parts[0]);
+        final m = int.parse(parts[1]);
+        return h * 60 + m;
+      } catch (_) {
+        return 0;
+      }
+    }
+
+    todayEntries.sort((a, b) => parseMinutes(a.startTime).compareTo(parseMinutes(b.startTime)));
+
+    for (final entry in todayEntries) {
+      final startMin = parseMinutes(entry.startTime);
+      final endMin = parseMinutes(entry.endTime);
+
+      if (endMin > nowInMinutes) {
+        final isOngoing = nowInMinutes >= startMin && nowInMinutes < endMin;
+        return _NextLectureInfo(entry: entry, isOngoing: isOngoing);
+      }
+    }
+
+    return null;
+  }
+
+  String _formatTime12h(String time24) {
+    try {
+      final parts = time24.trim().split(':');
+      int hour = int.parse(parts[0]);
+      int minute = int.parse(parts[1]);
+      final period = hour >= 12 ? 'PM' : 'AM';
+      hour = hour % 12;
+      if (hour == 0) hour = 12;
+      return '$hour:${minute.toString().padLeft(2, '0')} $period';
+    } catch (_) {
+      return time24;
+    }
+  }
+
+  Widget _buildNextLectureCard(TimetableProvider timetableProvider, bool isDark) {
+    final entriesToUse = timetableProvider.notifiedTimetable.isNotEmpty
+        ? timetableProvider.notifiedTimetable
+        : timetableProvider.currentTimetable;
+    final info = _getNextLecture(entriesToUse);
+    if (info == null) return const SizedBox.shrink();
+
+    final entry = info.entry;
+    final isOngoing = info.isOngoing;
+
+    final startTimeFormatted = _formatTime12h(entry.startTime);
+    final endTimeFormatted = _formatTime12h(entry.endTime);
+
+    return Container(
+      margin: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        gradient: isOngoing
+            ? const LinearGradient(
+                colors: [Color(0xFF11998E), Color(0xFF38EF7D)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              )
+            : const LinearGradient(
+                colors: [Color(0xFF6C63FF), Color(0xFF3B33C6)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [
+          BoxShadow(
+            color: (isOngoing ? const Color(0xFF11998E) : const Color(0xFF6C63FF)).withOpacity(0.35),
+            blurRadius: 16,
+            offset: const Offset(0, 6),
+          )
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.25),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      isOngoing ? Icons.play_circle_filled_rounded : Icons.schedule_rounded,
+                      color: Colors.white,
+                      size: 14,
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      isOngoing ? 'ONGOING LECTURE' : 'NEXT LECTURE TODAY',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                decoration: BoxDecoration(
+                  color: Colors.black.withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Text(
+                  '$startTimeFormatted - $endTimeFormatted',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          if (entry.moduleCode.isNotEmpty)
+            Text(
+              entry.moduleCode,
+              style: TextStyle(
+                color: Colors.white.withOpacity(0.85),
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                letterSpacing: 0.5,
+              ),
+            ),
+          const SizedBox(height: 2),
+          Text(
+            entry.moduleName.isNotEmpty ? entry.moduleName : 'Scheduled Class',
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+            ),
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+          ),
+          const SizedBox(height: 14),
+          Divider(color: Colors.white.withOpacity(0.2), height: 1),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              if (entry.venue.isNotEmpty) ...[
+                const Icon(Icons.location_on_rounded, color: Colors.white70, size: 16),
+                const SizedBox(width: 4),
+                Expanded(
+                  child: Text(
+                    entry.venue,
+                    style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w500),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
+              if (entry.lecturer.isNotEmpty) ...[
+                if (entry.venue.isNotEmpty) const SizedBox(width: 12),
+                const Icon(Icons.person_rounded, color: Colors.white70, size: 16),
+                const SizedBox(width: 4),
+                Expanded(
+                  child: Text(
+                    entry.lecturer,
+                    style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w500),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final provider = context.watch<GpaProvider>();
+    final timetableProvider = context.watch<TimetableProvider>();
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 
@@ -311,20 +529,39 @@ class _GpaScreenState extends State<GpaScreen> {
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         toolbarHeight: 70,
-        title: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        title: Row(
           children: [
-            Text('${_getGreeting()},',
-                style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w500,
-                    color: isDark ? Colors.white54 : Colors.black45)),
-            Text(
-              '${_studentName.isNotEmpty ? _studentName : 'Tharusha'} 👋',
-              style: TextStyle(
-                  fontSize: 22,
-                  fontWeight: FontWeight.bold,
-                  color: isDark ? Colors.white : Colors.black87),
+            Consumer<BackupService>(
+              builder: (context, backupService, _) {
+                final photoUrl = backupService.currentUser?.photoUrl;
+                if (photoUrl != null) {
+                  return Padding(
+                    padding: const EdgeInsets.only(right: 12.0),
+                    child: CircleAvatar(
+                      radius: 20,
+                      backgroundImage: NetworkImage(photoUrl),
+                    ),
+                  );
+                }
+                return const SizedBox.shrink();
+              },
+            ),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('${_getGreeting()},',
+                    style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w500,
+                        color: isDark ? Colors.white54 : Colors.black45)),
+                Text(
+                  '${_studentName.isNotEmpty ? _studentName : 'Tharusha'} 👋',
+                  style: TextStyle(
+                      fontSize: 22,
+                      fontWeight: FontWeight.bold,
+                      color: isDark ? Colors.white : Colors.black87),
+                ),
+              ],
             ),
           ],
         ),
@@ -341,6 +578,7 @@ class _GpaScreenState extends State<GpaScreen> {
           SliverToBoxAdapter(
             child: Column(
               children: [
+                _buildNextLectureCard(timetableProvider, isDark),
                 Container(
                   margin: const EdgeInsets.fromLTRB(16, 8, 16, 8),
                   padding: const EdgeInsets.all(24),
@@ -862,4 +1100,11 @@ class _GpaScreenState extends State<GpaScreen> {
     }
     return null;
   }
+}
+
+class _NextLectureInfo {
+  final TimetableEntry entry;
+  final bool isOngoing;
+
+  _NextLectureInfo({required this.entry, required this.isOngoing});
 }
