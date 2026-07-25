@@ -1,5 +1,5 @@
 <div align="center">
-  <a href="https://sourceforge.net/projects/schedulemate/" target="_blank"><img src="android/app/src/main/res/mipmap-hdpi/ic_launcher.png" alt="ScheduleMate" width="120"></a>
+  <a href="https://sourceforge.net/projects/schedulemate/" target="_blank"><img src="readme-assets/app_icon.png" alt="ScheduleMate" width="120"></a>
   <h1>ScheduleMate</h1>
   <p><strong>Manage your academic life. Track grades. Never miss a class.</strong></p>
   <p>
