@@ -5,6 +5,8 @@
 <div align="center">
 
 [![Download ScheduleMate](https://a.fsdn.com/con/app/sf-download-button)](https://sourceforge.net/projects/schedulemate/files/latest/download)
+<br>
+[![Download ScheduleMate](https://img.shields.io/sourceforge/dt/schedulemate.svg)](https://sourceforge.net/projects/schedulemate/files/latest/download)
 
 <br>
 
