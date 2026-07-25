@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:gpa_timetable_app/services/update_service.dart';
 
 import 'announcements_screen.dart';
 import 'gpa_screen.dart';
@@ -15,6 +16,15 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   int _index = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    // Check for updates on startup
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      UpdateService.checkForUpdates(context);
+    });
+  }
 
   final List<_NavItem> _navItems = const [
     _NavItem(Icons.school_rounded, Icons.school_rounded, 'GPA'),
