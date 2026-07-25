@@ -1,146 +1,122 @@
-# <img src="android/app/src/main/res/mipmap-hdpi/ic_launcher.png" width="50" height="50" alt="ScheduleMate Icon"> ScheduleMate
+<div align="center">
+  <a href="https://sourceforge.net/projects/schedulemate/" target="_blank"><img src="readme-assets/app_icon.png" alt="ScheduleMate" width="120"></a>
+  <h1>ScheduleMate</h1>
+  <p><strong>Manage your academic life. Track grades. Never miss a class.</strong></p>
+  <p>
+    <a href="https://sourceforge.net/projects/schedulemate/" target="_blank">🚀 SourceForge</a> •
+    <a href="#-features">✨ Features</a> •
+    <a href="#%EF%B8%8F-quick-start-guide">📦 Getting Started</a> •
+    <a href="#-contribution">🤝 Contributing</a>
+  </p>
 
-> A powerful Flutter app designed to help students manage their academic life with ease.
+[![Download (Latest)](https://img.shields.io/sourceforge/dm/schedulemate.svg?label=Downloads)](https://sourceforge.net/projects/schedulemate/files/latest/download)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+![Flutter](https://img.shields.io/badge/Flutter-3.x-02569B?logo=flutter&logoColor=white)
+![Dart](https://img.shields.io/badge/Dart-3.x-0175C2?logo=dart&logoColor=white)
+![Platform](https://img.shields.io/badge/Platform-Android-green)
+![Status](https://img.shields.io/badge/Status-Active-brightgreen)
+
+---
+
+**ScheduleMate** is a modern, student-focused Flutter application that brings your entire academic life into one place.
+Track GPA in real-time, import faculty timetables from HTML exports, and stay on top of every class with intelligent reminders — all **completely offline**.
+
+&nbsp; &nbsp;[![Download ScheduleMate](https://a.fsdn.com/con/app/sf-download-button)](https://sourceforge.net/projects/schedulemate/files/latest/download)
+
+</div>
+
+
+---
+
+## 🖥️ App Preview
 
 <div align="center">
-
-[![Download ScheduleMate](https://a.fsdn.com/con/app/sf-download-button)](https://sourceforge.net/projects/schedulemate/files/latest/download)
-<br>
-[![Download ScheduleMate](https://img.shields.io/sourceforge/dt/schedulemate.svg)](https://sourceforge.net/projects/schedulemate/files/latest/download)
-
-<br>
-
-![Flutter](https://img.shields.io/badge/Flutter-02569B?style=for-the-badge&logo=flutter&logoColor=white)
-![Dart](https://img.shields.io/badge/Dart-0175C2?style=for-the-badge&logo=dart&logoColor=white)
-![License](https://img.shields.io/badge/License-MIT-green?style=for-the-badge)
-![Status](https://img.shields.io/badge/Status-Active-brightgreen?style=for-the-badge)
-
-[Features](#-features) • [Installation](#-installation) • [Documentation](#-documentation) • [Contributing](#-contributing)
-
+  <img src="ss/Screenshot%202026-07-20%20162141.png" width="200" />
+  <img src="ss/Screenshot%202026-07-20%20162219.png" width="200" />
+  <img src="ss/Screenshot%202026-07-20%20162236.png" width="200" />
+  <img src="ss/Screenshot%202026-07-20%20162254.png" width="200" />
 </div>
 
 ---
 
-## 🌟 About ScheduleMate
+## ✨ Features
 
-ScheduleMate is your personal academic companion. Manage GPA calculations, organize timetables, and never miss a class with intelligent reminders—all in one intuitive app.
-
-Perfect for students who want to:
-- 📊 Track grades and calculate GPA automatically
-- 📅 Import timetables from faculty HTML exports
-- 🔔 Receive smart class reminders
-- 💾 Access everything offline
-
----
-
-## 📸 Screenshots
-
-<div align="center">
-  <img src="ss/Screenshot%202026-07-20%20162141.png" width="220" />
-  <img src="ss/Screenshot%202026-07-20%20162219.png" width="220" />
-  <img src="ss/Screenshot%202026-07-20%20162236.png" width="220" />
-  <img src="ss/Screenshot%202026-07-20%20162254.png" width="220" />
-</div>
+* 📊 **GPA Calculator** — Real-time semester GPA calculation with cumulative tracking and customizable grade point scales.
+* 📅 **Smart Timetable Import** — Import schedules directly from faculty HTML exports with automatic parsing.
+* 🔔 **Class Reminders** — Weekly notification reminders with customizable lead times for Android 12+.
+* 💾 **Offline First** — All data stored locally via SQLite — no internet connection required.
+* 🗂️ **Organized by Day/Week** — View your timetable in a clean, structured layout organized by day and time slot.
+* 🎨 **Material 3 Design** — Clean, modern UI built with Flutter's latest Material Design 3 guidelines.
+* ⚙️ **Flexible Customization** — Adjust grade point scales and notification timings to fit your institution's system.
 
 ---
 
-## ✨ Key Features
+## ⚙️ Tech Stack
 
-<table>
-<tr>
-<td width="50%">
-
-### 📊 GPA Calculator
-- Real-time semester GPA calculation
-- Cumulative GPA tracking
-- Customizable grade point scale
-- Visual grade analytics
-
-### 📅 Smart Timetable
-- Import from HTML exports
-- Automatic schedule parsing
-- Organized by day/week
-- Easy course management
-
-</td>
-<td width="50%">
-
-### 🔔 Notifications
-- Weekly class reminders
-- Customizable lead times
-- Android 12+ support
-- Smart notification management
-
-### 💾 Offline First
-- SQLite local storage
-- No internet required
-- Fast performance
-- Reliable data persistence
-
-</td>
-</tr>
-</table>
+| Category              | Technologies                        |
+| --------------------- | ----------------------------------- |
+| **Language**          | Dart 3.x                            |
+| **Framework**         | Flutter 3.x                         |
+| **UI Design**         | Material Design 3                   |
+| **State Management**  | Provider                            |
+| **Database**          | SQLite (`sqflite`)                  |
+| **HTML Parsing**      | `package:html`                      |
+| **Notifications**     | `flutter_local_notifications`       |
+| **Platform**          | Android (iOS support planned)       |
 
 ---
 
-## 🛠️ Tech Stack
+## 🧭 Quick Start Guide
 
-| Layer | Technology |
-|-------|-----------|
-| **Frontend** | Flutter + Dart |
-| **UI Design** | Material 3 |
-| **State Management** | Provider |
-| **Database** | SQLite (`sqflite`) |
-| **Parsing** | HTML (`package:html`) |
-| **Notifications** | Flutter Local Notifications |
+### 1️⃣ Clone the Repository
 
----
-
-## 📦 Installation
-
-### Prerequisites
-```bash
-Flutter SDK (latest)
-Dart SDK
-Android Studio / Xcode
-```
-
-### Quick Setup
-
-**1️⃣ Clone Repository**
 ```bash
 git clone https://github.com/TharushaAkash/ScheduleMate.git
 cd ScheduleMate
 ```
 
-**2️⃣ Install Dependencies**
+### 2️⃣ Install Dependencies
+
 ```bash
 flutter pub get
 ```
 
-**3️⃣ Generate Native Folders (if needed)**
+### 3️⃣ Generate Native Folders (if needed)
+
 ```bash
 flutter create --project-name schedulemate . --overwrite
 flutter pub get
 ```
 
-**4️⃣ Run Application**
-```bash
-flutter run
-```
+### 4️⃣ Configure Android Permissions
 
-### Android Configuration
-
-Add permissions to `android/app/src/main/AndroidManifest.xml`:
+Add the following to `android/app/src/main/AndroidManifest.xml`:
 
 ```xml
 <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM"/>
 <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
 ```
 
+> [!NOTE]
+> Exact alarm permissions are required for Android 12+ to schedule class reminder notifications.
+
+### 5️⃣ Run the Application
+
+```bash
+flutter run
+```
+
+### 6️⃣ Start Managing Your Academic Life
+
+1. Tap **"Add Semester"** → Enter name, year, and date range.
+2. Add your courses — input name, credit hours, and grade.
+3. Watch your **GPA calculate automatically** in real-time ✨
+4. Export HTML from your Faculty Portal → **Upload in App** to import your timetable.
+5. Toggle **Notifications** → Receive weekly class reminders 🔔
+
 ---
 
-## 📂 Project Structure
+## 📁 Project Structure
 
 ```
 ScheduleMate/
@@ -164,75 +140,49 @@ ScheduleMate/
 │       ├── timetable_upload_screen.dart
 │       └── timetable_view_screen.dart
 ├── android/
-│   └── app/src/main/res/
-│       ├── mipmap-hdpi/
-│       ├── mipmap-mdpi/
-│       ├── mipmap-xhdpi/
-│       ├── mipmap-xxhdpi/
-│       └── mipmap-xxxhdpi/
 ├── ios/
+├── assets/
 └── pubspec.yaml
 ```
 
 ---
 
-## 🚀 Quick Start
+## 🚧 Roadmap
 
-### Step 1: Create Semester
-```
-Tap "Add Semester" → Enter Name, Year, Date
-```
-
-### Step 2: Add Courses
-```
-Input Course Name → Credit Hours → Grade
-Watch GPA calculate automatically ✨
-```
-
-### Step 3: Import Timetable
-```
-Export HTML from Faculty Portal → Upload in App
-Select Year/Semester/Group
-```
-
-### Step 4: Enable Reminders
-```
-Toggle Notifications → Get Weekly Class Reminders 🔔
-```
+- [ ] ✏️ Edit/Delete semesters and courses
+- [ ] ⏰ Customizable reminder lead times in settings UI
+- [ ] 💾 Auto-backup timetable cache
+- [ ] 🎯 Multiple timetable parser profiles per institution
+- [ ] 📊 GPA trend analytics & charts
+- [ ] 🌙 Dark mode support
+- [ ] 🌍 Multi-language support (Sinhala, Tamil, English)
+- [ ] 📤 Export GPA transcript as PDF
 
 ---
 
-## 📖 Documentation
+## 🤝 Contribution
 
-### Timetable Parser
+We **welcome all kinds of contributions** — not just code!
+Whether you're improving the UI, fixing bugs, adding features, or improving documentation — **your input makes ScheduleMate better for every student.**
 
-Supports two HTML formats:
-- ✅ Flat tables with header rows
-- ✅ Grid-style schedules (weekday × time)
+### 💡 Ways You Can Contribute
 
-**Custom Format?**
-1. Inspect exported HTML structure
-2. Update selectors in `lib/services/timetable_parser.dart`
-3. Test with your export
+* 🧩 **Code Improvements:** Fix bugs, optimize performance, or suggest new features via [GitHub Issues](https://github.com/TharushaAkash/ScheduleMate/issues).
+* 🗂️ **Timetable Parser Profiles:** Help us support more faculty HTML export formats by contributing parser configurations.
+* 🐛 **Bug Reports:** Found something that doesn't work? Open a detailed issue with steps to reproduce.
+* 🧠 **Ideas & Feedback:** Share feature suggestions or general feedback in [GitHub Discussions](https://github.com/TharushaAkash/ScheduleMate/discussions).
+* 🧾 **Documentation:** Improve readability, fix typos, or expand the project documentation.
 
-### Customization Guide
+### 🛠️ Getting Started
 
-**Grade Point Scale**
-```dart
-// lib/models/course.dart
-const gradeScale = {
-  'A': 4.0,
-  'A-': 3.7,
-  'B+': 3.3,
-  // ... customize as needed
-};
-```
+1. **Fork** the repository.
+2. **Create a new branch** for your changes.
+3. **Commit** your improvements with clear, descriptive messages.
+4. **Submit a pull request** — we'll review and merge it!
 
-**Notification Lead Time**
-```dart
-// lib/services/notification_service.dart
-const reminderMinutesBefore = 15; // Adjust timing
-```
+> Follow the Dart style guide and add tests for new features where applicable.
+
+> ❤️ Every contribution, big or small, is appreciated. Let's make ScheduleMate better for students everywhere — together!
 
 ---
 
@@ -240,103 +190,28 @@ const reminderMinutesBefore = 15; // Adjust timing
 
 | Problem | Solution |
 |---------|----------|
-| **HTML import fails** | Check format matches parser; update selectors if needed |
-| **Notifications don't show** | Verify Android permissions; check alarm support |
-| **GPA calculation wrong** | Update grade scale in `course.dart` |
+| **HTML import fails** | Check that format matches the parser; update selectors in `timetable_parser.dart` if needed |
+| **Notifications don't show** | Verify Android permissions are granted; check exact alarm support on device |
+| **GPA calculation wrong** | Update grade scale constants in `lib/models/course.dart` |
 | **App crashes on startup** | Run `flutter clean` then `flutter pub get` |
-| **SQLite errors** | Delete app data and reinstall |
+| **SQLite errors** | Clear app data via device settings and reinstall |
 
 ---
 
-## 🚧 Roadmap
+## 📜 License
 
-- [ ] ✏️ Edit/Delete semesters and courses
-- [ ] ⏰ Customizable reminder lead times
-- [ ] 💾 Auto-backup timetable cache
-- [ ] 🎯 Multiple parser profiles per institution
-- [ ] 📊 GPA trend analytics & charts
-- [ ] 🌙 Dark mode support
-- [ ] 🌍 Multi-language support (Sinhala, Tamil, etc.)
-- [ ] 📤 Export GPA transcript
+Licensed under the **MIT License**.
+See the [LICENSE](LICENSE) file for full details.
 
 ---
 
-## 🤝 Contributing
+## ⚠️ Disclaimer
 
-Contributions are welcome! Follow these steps:
-
-```bash
-# 1. Fork the repository
-git clone https://github.com/YOUR-USERNAME/ScheduleMate.git
-
-# 2. Create feature branch
-git checkout -b feature/amazing-feature
-
-# 3. Make changes and commit
-git commit -m "Add amazing feature"
-
-# 4. Push to branch
-git push origin feature/amazing-feature
-
-# 5. Open Pull Request
-```
-
-**Guidelines:**
-- Follow Dart style guide
-- Add tests for new features
-- Include sanitized HTML examples for parser updates
-- Write clear commit messages
+This application is intended for **personal academic use only**.
+Timetable HTML parsing depends on the structure of your institution's faculty portal export. Parser compatibility may vary.
 
 ---
 
-## 📝 Code Style
-
-```dart
-// Use meaningful variable names
-final gpaCalculator = GPACalculator();
-
-// Proper async/await
-Future<void> importTimetable() async {
-  final result = await parser.parse(htmlContent);
-  // ...
-}
-
-// Null safety
-String? courseCode;
-```
-
----
-
-## 📄 License
-
-This project is licensed under the **MIT License** - see [LICENSE](LICENSE) file for details.
-
----
-
-## 💬 Support
-
-Have questions? We're here to help!
-
-- 📬 **Issues:** [GitHub Issues](https://github.com/TharushaAkash/ScheduleMate/issues)
-- 💬 **Discussions:** [GitHub Discussions](https://github.com/TharushaAkash/ScheduleMate/discussions)
-- 📧 **Email:** tharushaakasha22@gmail.com
-
----
-
-## 🙏 Acknowledgments
-
-- Flutter & Dart community
-- Material Design guidelines
-- All contributors and users
-
----
-
-<div align="center">
-
-**Made with ❤️ for students, by students**
-
-⭐ If you find this helpful, please star the repository!
-
-[⬆ Back to top](#-schedulemate)
-
-</div>
+<p align="center">
+<b>Made with ❤️ by <a href="https://github.com/TharushaAkash">TharushaAkash</a> and contributors</b>
+</p>
