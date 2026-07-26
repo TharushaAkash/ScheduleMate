@@ -9,30 +9,18 @@ import 'package:syncfusion_flutter_pdf/pdf.dart';
 import '../models/semester.dart';
 
 class ReportService {
-  // ─── Colors (non-const since PdfColor constructor is not const) ─────────────
-  static final _primary        = PdfColor(108, 99, 255);
-  static final _primaryDark    = PdfColor(74, 68, 204);
-
-  static final _accentGreen    = PdfColor(0, 212, 170);
-  static final _accentRed      = PdfColor(255, 107, 157);
-  static final _accentOrange   = PdfColor(230, 126, 34);
-  static final _accentTeal     = PdfColor(26, 188, 156);
-  static final _textWhite      = PdfColor(255, 255, 255);
-  static final _textLightPurple= PdfColor(200, 200, 255);
-  static final _textSubtle     = PdfColor(180, 180, 220);
-  static final _bgCard         = PdfColor(240, 240, 252);
-  static final _bgLight        = PdfColor(245, 245, 255);
-  static final _rowAlt         = PdfColor(248, 247, 255);
-  static final _tableHeader    = PdfColor(230, 228, 255);
-  static final _textDarkBlue   = PdfColor(50, 50, 100);
-  static final _textMidBlue    = PdfColor(80, 80, 150);
-  static final _textSubBlue    = PdfColor(120, 120, 160);
-  static final _divider        = PdfColor(220, 218, 240);
-  static final _footerText     = PdfColor(160, 158, 200);
-  static final _transparentPurple = PdfColor(108, 99, 255, 80);
-  static final _transparentTeal   = PdfColor(0, 212, 170, 50);
-  static final _transparentWhite  = PdfColor(255, 255, 255, 30);
-  static final _semiBluePurple    = PdfColor(200, 200, 255, 180);
+  static final _primaryDark = PdfColor(30, 58, 95); // #1E3A5F
+  static final _bgWhite = PdfColor(255, 255, 255);
+  static final _bgLight = PdfColor(248, 249, 250);
+  static final _borderGray = PdfColor(230, 230, 235);
+  static final _dividerGray = PdfColor(240, 240, 245);
+  static final _textDark = PdfColor(40, 40, 40);
+  static final _textSubtle = PdfColor(100, 100, 100);
+  static final _textWhite = PdfColor(255, 255, 255);
+  static final _accentGreen = PdfColor(10, 180, 90);
+  static final _accentBlue = PdfColor(30, 100, 220);
+  static final _accentOrange = PdfColor(230, 126, 34);
+  static final _accentRed = PdfColor(220, 50, 50);
 
   static Future<void> generateAndDownloadResultSheet({
     required BuildContext context,
@@ -55,7 +43,7 @@ class ReportService {
                 Text('Generating Result Sheet...'),
               ],
             ),
-            backgroundColor: const Color(0xFF6C63FF),
+            backgroundColor: const Color(0xFF1E3A5F),
             behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             duration: const Duration(seconds: 3),
@@ -76,157 +64,183 @@ class ReportService {
       final pageHeight = page.getClientSize().height;
 
       // ── HEADER ──────────────────────────────────────────────────────────────
-      page.graphics.drawRectangle(
-        brush: PdfSolidBrush(_primaryDark),
-        bounds: Rect.fromLTWH(0, 0, pageWidth, 116),
-      );
+      // Slanted Banner
+      final bannerPath = PdfPath();
+      final bannerTopW = pageWidth * 0.65;
+      final bannerBotW = bannerTopW - 40;
+      bannerPath.addLine(const Offset(0, 0), Offset(bannerTopW, 0));
+      bannerPath.addLine(Offset(bannerTopW, 0), Offset(bannerBotW, 110));
+      bannerPath.addLine(Offset(bannerBotW, 110), const Offset(0, 110));
+      bannerPath.closeFigure();
+      page.graphics.drawPath(bannerPath, brush: PdfSolidBrush(_primaryDark));
+      
+      // Shadow-like corner (slight accent)
+      final shadowPath = PdfPath();
+      shadowPath.addLine(Offset(bannerTopW, 0), Offset(bannerTopW + 10, 0));
+      shadowPath.addLine(Offset(bannerTopW + 10, 0), Offset(bannerBotW + 10, 110));
+      shadowPath.addLine(Offset(bannerBotW + 10, 110), Offset(bannerBotW, 110));
+      shadowPath.closeFigure();
+      page.graphics.drawPath(shadowPath, brush: PdfSolidBrush(PdfColor(200, 200, 200, 100)));
 
-      // Decorative circles
-      page.graphics.drawEllipse(
-        const Rect.fromLTWH(400, -35, 150, 150),
-        brush: PdfSolidBrush(_transparentPurple),
-      );
-      page.graphics.drawEllipse(
-        const Rect.fromLTWH(445, 60, 100, 100),
-        brush: PdfSolidBrush(_transparentTeal),
-      );
-
-      // Logo image
+      // Logo Box
+      _drawRoundedRect(page, 16, 16, 70, 70, _bgWhite, radius: 4);
       try {
         final ByteData data = await rootBundle.load('readme-assets/app_icon.png');
         final Uint8List imageBytes = data.buffer.asUint8List();
         final PdfBitmap image = PdfBitmap(imageBytes);
-        page.graphics.drawImage(image, const Rect.fromLTWH(14, 18, 62, 62));
+        page.graphics.drawImage(image, const Rect.fromLTWH(21, 21, 60, 60));
       } catch (e) {
-        // Fallback to text if image fails
-        page.graphics.drawRectangle(
-          brush: PdfSolidBrush(_transparentWhite),
-          bounds: const Rect.fromLTWH(14, 18, 62, 62),
-        );
         page.graphics.drawString(
           'SM',
           PdfStandardFont(PdfFontFamily.helvetica, 24, style: PdfFontStyle.bold),
-          brush: PdfSolidBrush(_textWhite),
-          bounds: const Rect.fromLTWH(22, 30, 46, 40),
+          brush: PdfSolidBrush(_primaryDark),
+          bounds: const Rect.fromLTWH(30, 36, 46, 40),
         );
       }
 
+      // Title Texts
       page.graphics.drawString(
         'ScheduleMate',
-        PdfStandardFont(PdfFontFamily.helvetica, 20, style: PdfFontStyle.bold),
+        PdfStandardFont(PdfFontFamily.helvetica, 22, style: PdfFontStyle.bold),
         brush: PdfSolidBrush(_textWhite),
-        bounds: Rect.fromLTWH(88, 20, pageWidth - 110, 30),
+        bounds: const Rect.fromLTWH(100, 24, 300, 30),
       );
       page.graphics.drawString(
-        'Academic Result Sheet',
-        PdfStandardFont(PdfFontFamily.helvetica, 11),
-        brush: PdfSolidBrush(_textLightPurple),
-        bounds: Rect.fromLTWH(88, 52, pageWidth - 110, 20),
+        'Academic Result Sheet\nBachelor of Information Technology\nFaculty of Technology',
+        PdfStandardFont(PdfFontFamily.helvetica, 10),
+        brush: PdfSolidBrush(PdfColor(220, 220, 220)),
+        bounds: const Rect.fromLTWH(100, 52, 300, 50),
+        format: PdfStringFormat(lineSpacing: 4),
       );
 
-      final now = DateTime.now();
-      final dateStr =
-          '${now.day.toString().padLeft(2, '0')}/'
-          '${now.month.toString().padLeft(2, '0')}/${now.year}';
+      // GPA Box
+      final gpaBoxW = pageWidth * 0.3;
+      final gpaBoxX = pageWidth - gpaBoxW;
+      _drawRoundedRect(page, gpaBoxX, 16, gpaBoxW, 80, _bgLight, border: _borderGray, radius: 6);
       page.graphics.drawString(
-        'Generated: $dateStr',
+        'Overall GPA',
         PdfStandardFont(PdfFontFamily.helvetica, 9),
         brush: PdfSolidBrush(_textSubtle),
-        bounds: Rect.fromLTWH(88, 74, pageWidth - 110, 18),
-      );
-
-      double y = 132;
-
-      // ── STUDENT INFO CARD ─────────────────────────────────────────────────
-      _drawRoundedRect(page, 0, y, pageWidth, 72, _bgLight);
-
-      page.graphics.drawString(
-        studentName.isNotEmpty ? studentName : 'Student',
-        PdfStandardFont(PdfFontFamily.helvetica, 16, style: PdfFontStyle.bold),
-        brush: PdfSolidBrush(_textDarkBlue),
-        bounds: Rect.fromLTWH(14, y + 10, pageWidth - 180, 24),
-      );
-      page.graphics.drawString(
-        'Student ID: ${studentId.isNotEmpty ? studentId : "N/A"}',
-        PdfStandardFont(PdfFontFamily.helvetica, 10),
-        brush: PdfSolidBrush(_textSubBlue),
-        bounds: Rect.fromLTWH(14, y + 38, 240, 18),
-      );
-      page.graphics.drawString(
-        'Faculty of Technology',
-        PdfStandardFont(PdfFontFamily.helvetica, 10),
-        brush: PdfSolidBrush(_textSubBlue),
-        bounds: Rect.fromLTWH(14, y + 54, 200, 16),
-      );
-
-      // GPA badge
-      _drawRoundedRect(page, pageWidth - 158, y + 8, 154, 56, _primary);
-      page.graphics.drawString(
-        'Cumulative GPA',
-        PdfStandardFont(PdfFontFamily.helvetica, 8),
-        brush: PdfSolidBrush(_semiBluePurple),
-        bounds: Rect.fromLTWH(pageWidth - 150, y + 14, 144, 14),
+        bounds: Rect.fromLTWH(gpaBoxX + 16, 26, gpaBoxW - 32, 14),
       );
       page.graphics.drawString(
         cumulativeGpa.toStringAsFixed(2),
-        PdfStandardFont(PdfFontFamily.helvetica, 24, style: PdfFontStyle.bold),
-        brush: PdfSolidBrush(_textWhite),
-        bounds: Rect.fromLTWH(pageWidth - 150, y + 28, 100, 30),
+        PdfStandardFont(PdfFontFamily.helvetica, 28, style: PdfFontStyle.bold),
+        brush: PdfSolidBrush(_primaryDark),
+        bounds: Rect.fromLTWH(gpaBoxX + 14, 42, 70, 30),
       );
       page.graphics.drawString(
         '/ 4.00',
         PdfStandardFont(PdfFontFamily.helvetica, 10),
-        brush: PdfSolidBrush(_textLightPurple),
-        bounds: Rect.fromLTWH(pageWidth - 94, y + 38, 90, 18),
+        brush: PdfSolidBrush(_textSubtle),
+        bounds: Rect.fromLTWH(gpaBoxX + 70, 56, 40, 18),
       );
-
-      y += 88;
-
-      // ── SUMMARY STATS ROW ────────────────────────────────────────────────
-      final totalModules = semesters.fold<int>(0, (s, sem) => s + sem.courses.length);
-      final totalCredits = semesters.fold<double>(0, (s, sem) => s + sem.totalCredits);
 
       String gpaStatus;
       PdfColor statusColor;
       if (cumulativeGpa >= 3.7) {
-        gpaStatus = 'Outstanding'; statusColor = _accentGreen;
+        gpaStatus = 'OUTSTANDING'; statusColor = _accentGreen;
       } else if (cumulativeGpa >= 3.0) {
-        gpaStatus = 'Excellent'; statusColor = _primary;
+        gpaStatus = 'EXCELLENT'; statusColor = _accentGreen;
       } else if (cumulativeGpa >= 2.7) {
-        gpaStatus = 'Good'; statusColor = _accentTeal;
+        gpaStatus = 'GOOD'; statusColor = _accentBlue;
       } else if (cumulativeGpa >= 2.5) {
-        gpaStatus = 'Average'; statusColor = _accentOrange;
+        gpaStatus = 'AVERAGE'; statusColor = _accentOrange;
       } else {
-        gpaStatus = 'Needs Work'; statusColor = _accentRed;
+        gpaStatus = 'NEEDS WORK'; statusColor = _accentRed;
       }
 
-      final statsItems = [
-        ['Semesters', '${semesters.length}'],
-        ['Total Modules', '$totalModules'],
-        ['Total Credits', totalCredits.toStringAsFixed(1)],
-        ['Status', gpaStatus],
+      _drawRoundedRect(page, gpaBoxX + 16, 76, 70, 16, statusColor, radius: 4);
+      page.graphics.drawString(
+        gpaStatus,
+        PdfStandardFont(PdfFontFamily.helvetica, 8, style: PdfFontStyle.bold),
+        brush: PdfSolidBrush(_textWhite),
+        bounds: Rect.fromLTWH(gpaBoxX + 16, 78, 70, 12),
+        format: PdfStringFormat(alignment: PdfTextAlignment.center),
+      );
+
+      double y = 130;
+
+      // ── STUDENT INFO CARD ─────────────────────────────────────────────────
+      final totalModules = semesters.fold<int>(0, (s, sem) => s + sem.courses.length);
+      final totalCredits = semesters.fold<double>(0, (s, sem) => s + sem.totalCredits);
+      final yearStr = (semesters.isNotEmpty) ? "Year ${semesters.last.year}" : "N/A";
+
+      _drawRoundedRect(page, 0, y, pageWidth, 70, _bgWhite, border: _borderGray, radius: 8);
+      
+      // Profile Icon
+      page.graphics.drawEllipse(
+        Rect.fromLTWH(16, y + 15, 40, 40),
+        brush: PdfSolidBrush(_primaryDark),
+      );
+      // Simple custom profile path inside circle
+      page.graphics.drawEllipse(
+        Rect.fromLTWH(28, y + 22, 16, 16),
+        brush: PdfSolidBrush(_bgWhite),
+      );
+      final bodyPath = PdfPath();
+      bodyPath.addArc(Rect.fromLTWH(20, y + 40, 32, 20), 180, 180);
+      page.graphics.drawPath(bodyPath, brush: PdfSolidBrush(_bgWhite));
+
+      // Info Texts
+      page.graphics.drawString(
+        studentName.isNotEmpty ? studentName : 'Student',
+        PdfStandardFont(PdfFontFamily.helvetica, 14, style: PdfFontStyle.bold),
+        brush: PdfSolidBrush(_textDark),
+        bounds: Rect.fromLTWH(70, y + 16, 160, 20),
+      );
+      page.graphics.drawString(
+        'Student ID: ${studentId.isNotEmpty ? studentId : "N/A"}',
+        PdfStandardFont(PdfFontFamily.helvetica, 9),
+        brush: PdfSolidBrush(_textSubtle),
+        bounds: Rect.fromLTWH(70, y + 36, 160, 14),
+      );
+      page.graphics.drawString(
+        'Year: $yearStr',
+        PdfStandardFont(PdfFontFamily.helvetica, 9),
+        brush: PdfSolidBrush(_textSubtle),
+        bounds: Rect.fromLTWH(70, y + 50, 160, 14),
+      );
+
+      // Stats
+      final statTitles = ['Completed\nSemesters', 'Total Modules', 'Total Credits', 'Overall Grade'];
+      final statValues = [
+        '${semesters.length}',
+        '$totalModules',
+        totalCredits.toStringAsFixed(1),
+        gpaStatus.substring(0, 1) + gpaStatus.substring(1).toLowerCase()
       ];
 
-      final statW = (pageWidth - 12) / 4;
-      for (int i = 0; i < statsItems.length; i++) {
-        final sx = i * (statW + 4);
-        final isLast = i == 3;
-        _drawRoundedRect(page, sx, y, statW, 52, isLast ? statusColor : _bgCard);
+      final statW = (pageWidth - 240) / 4;
+      for (int i = 0; i < 4; i++) {
+        final sx = 240 + (i * statW);
+        // Vertical divider
+        if (i > 0) {
+          page.graphics.drawLine(
+            PdfPen(_borderGray, width: 1),
+            Offset(sx, y + 15),
+            Offset(sx, y + 55),
+          );
+        }
+        
+        // Draw stat
         page.graphics.drawString(
-          statsItems[i][0],
-          PdfStandardFont(PdfFontFamily.helvetica, 8),
-          brush: PdfSolidBrush(isLast ? _semiBluePurple : _textSubBlue),
-          bounds: Rect.fromLTWH(sx + 8, y + 8, statW - 16, 14),
+          statTitles[i],
+          PdfStandardFont(PdfFontFamily.helvetica, 7),
+          brush: PdfSolidBrush(_textSubtle),
+          bounds: Rect.fromLTWH(sx + (i == 0 ? 0 : 4), y + 14, statW - 4, 20),
+          format: PdfStringFormat(alignment: PdfTextAlignment.center, lineSpacing: 2),
         );
         page.graphics.drawString(
-          statsItems[i][1],
-          PdfStandardFont(PdfFontFamily.helvetica, 14, style: PdfFontStyle.bold),
-          brush: PdfSolidBrush(isLast ? _textWhite : _textDarkBlue),
-          bounds: Rect.fromLTWH(sx + 8, y + 26, statW - 16, 22),
+          statValues[i],
+          PdfStandardFont(PdfFontFamily.helvetica, 12, style: PdfFontStyle.bold),
+          brush: PdfSolidBrush(_textDark),
+          bounds: Rect.fromLTWH(sx + (i == 0 ? 0 : 4), y + 38, statW - 4, 16),
+          format: PdfStringFormat(alignment: PdfTextAlignment.center),
         );
       }
 
-      y += 64;
+      y += 90;
 
       // ── PER-SEMESTER SECTIONS ────────────────────────────────────────────
       final sortedSemesters = List<Semester>.from(semesters)
@@ -238,64 +252,79 @@ class ReportService {
       PdfPage currentPage = page;
 
       for (final sem in sortedSemesters) {
-        final neededH = 36 + 22 + 22 * sem.courses.length + 28;
+        final neededH = 34 + 20 + 20 * sem.courses.length + 10;
         if (y + neededH > pageHeight - 40) {
           currentPage = doc.pages.add();
-          y = 20;
+          y = 36;
         }
 
-        // Semester header bar
-        _drawRoundedRect(currentPage, 0, y, pageWidth, 32, _primaryDark);
+        // Draw Semester Box Border
+        _drawRoundedRect(currentPage, 0, y, pageWidth, neededH - 10, _bgWhite, border: _borderGray, radius: 6);
+
+        // Slanted Semester Header
+        final semHeadW = 160.0;
+        final semSlant = 20.0;
+        final semPath = PdfPath();
+        final r = 6.0;
+        
+        semPath.addArc(Rect.fromLTWH(0, y, r * 2, r * 2), 180, 90);
+        semPath.addLine(Offset(r, y), Offset(semHeadW, y));
+        semPath.addLine(Offset(semHeadW, y), Offset(semHeadW - semSlant, y + 26));
+        semPath.addLine(Offset(semHeadW - semSlant, y + 26), Offset(0, y + 26));
+        semPath.addLine(Offset(0, y + 26), Offset(0, y + r));
+        semPath.closeFigure();
+        
+        currentPage.graphics.drawPath(semPath, brush: PdfSolidBrush(_primaryDark));
+
         currentPage.graphics.drawString(
-          sem.label,
-          PdfStandardFont(PdfFontFamily.helvetica, 11, style: PdfFontStyle.bold),
+          sem.label.toUpperCase(),
+          PdfStandardFont(PdfFontFamily.helvetica, 9, style: PdfFontStyle.bold),
           brush: PdfSolidBrush(_textWhite),
-          bounds: Rect.fromLTWH(10, y + 8, 240, 18),
+          bounds: Rect.fromLTWH(12, y + 7, semHeadW - 20, 14),
         );
+
+        // Header right side text
         currentPage.graphics.drawString(
-          'GPA: ${sem.semesterGpa.toStringAsFixed(2)}   |   Credits: ${sem.totalCredits.toStringAsFixed(1)}   |   ${sem.courses.length} modules',
-          PdfStandardFont(PdfFontFamily.helvetica, 9),
-          brush: PdfSolidBrush(_textLightPurple),
-          bounds: Rect.fromLTWH(260, y + 10, pageWidth - 270, 16),
+          'GPA: ${sem.semesterGpa.toStringAsFixed(2)}   |   Credits: ${sem.totalCredits.toStringAsFixed(1)}   |   ${sem.courses.length} Modules',
+          PdfStandardFont(PdfFontFamily.helvetica, 8, style: PdfFontStyle.bold),
+          brush: PdfSolidBrush(_textDark),
+          bounds: Rect.fromLTWH(160, y + 7, pageWidth - 170, 14),
           format: PdfStringFormat(alignment: PdfTextAlignment.right),
         );
-        y += 36;
+
+        y += 34;
 
         // Table header row
-        _drawRoundedRect(currentPage, 0, y, pageWidth, 22, _tableHeader);
-        final colW = [84.0, pageWidth - 84 - 52 - 52 - 60, 52.0, 52.0, 60.0];
-        final headers = ['Code', 'Module Name', 'Credits', 'Grade', 'Pts'];
+        final colW = [70.0, pageWidth - 70 - 60 - 60 - 60, 60.0, 60.0, 60.0];
+        final headers = ['Code', 'Module Name', 'Credits', 'Grade', 'Points'];
         double xPos = 0;
         for (int h = 0; h < headers.length; h++) {
           currentPage.graphics.drawString(
             headers[h],
             PdfStandardFont(PdfFontFamily.helvetica, 8, style: PdfFontStyle.bold),
-            brush: PdfSolidBrush(_textMidBlue),
-            bounds: Rect.fromLTWH(xPos + 6, y + 5, colW[h] - 8, 14),
+            brush: PdfSolidBrush(_textDark),
+            bounds: Rect.fromLTWH(xPos + 12, y, colW[h] - 8, 14),
           );
           xPos += colW[h];
         }
-        y += 22;
+        y += 18;
 
         // Module rows
-        bool alt = false;
-        for (final course in sem.courses) {
-          if (y + 22 > pageHeight - 40) {
-            currentPage = doc.pages.add();
-            y = 20;
-          }
-          if (alt) {
-            currentPage.graphics.drawRectangle(
-              brush: PdfSolidBrush(_rowAlt),
-              bounds: Rect.fromLTWH(0, y, pageWidth, 22),
-            );
-          }
+        currentPage.graphics.drawLine(
+          PdfPen(_borderGray, width: 1),
+          Offset(0, y),
+          Offset(pageWidth, y),
+        );
+        y += 4;
 
+        for (int cIdx = 0; cIdx < sem.courses.length; cIdx++) {
+          final course = sem.courses[cIdx];
+          
           PdfColor gradeColor;
           if (course.grade.startsWith('A')) {
             gradeColor = _accentGreen;
           } else if (course.grade.startsWith('B')) {
-            gradeColor = _primary;
+            gradeColor = _accentBlue;
           } else if (course.grade.startsWith('C')) {
             gradeColor = _accentOrange;
           } else {
@@ -316,115 +345,102 @@ class ReportService {
               rowData[c],
               PdfStandardFont(
                 PdfFontFamily.helvetica,
-                9,
+                8,
                 style: isGrade ? PdfFontStyle.bold : PdfFontStyle.regular,
               ),
-              brush: PdfSolidBrush(isGrade ? gradeColor : _textDarkBlue),
-              bounds: Rect.fromLTWH(xPos + 6, y + 4, colW[c] - 8, 14),
+              brush: PdfSolidBrush(isGrade ? gradeColor : _textSubtle),
+              bounds: Rect.fromLTWH(xPos + 12, y, colW[c] - 8, 14),
             );
             xPos += colW[c];
           }
 
-          currentPage.graphics.drawLine(
-            PdfPen(_divider, width: 0.5),
-            Offset(0, y + 22),
-            Offset(pageWidth, y + 22),
-          );
-          y += 22;
-          alt = !alt;
+          y += 16;
+          // Divider between rows
+          if (cIdx < sem.courses.length - 1) {
+             currentPage.graphics.drawLine(
+              PdfPen(_dividerGray, width: 0.5),
+              Offset(10, y),
+              Offset(pageWidth - 10, y),
+            );
+            y += 4;
+          }
         }
-
-        // GPA progress bar for this semester
-        y += 4;
-        if (y + 14 > pageHeight - 40) {
-          currentPage = doc.pages.add();
-          y = 20;
-        }
-        currentPage.graphics.drawRectangle(
-          brush: PdfSolidBrush(PdfColor(220, 218, 255)),
-          bounds: Rect.fromLTWH(0, y, pageWidth, 6),
-        );
-        currentPage.graphics.drawRectangle(
-          brush: PdfSolidBrush(_primary),
-          bounds: Rect.fromLTWH(0, y, (sem.semesterGpa / 4.0) * pageWidth, 6),
-        );
-        y += 18;
+        
+        y += 24; // Space before next block
       }
 
-      // ── SUMMARY TABLE ────────────────────────────────────────────────────
-      if (y + 60 > pageHeight - 40) {
+      // ── FOOTER SUMMARY ────────────────────────────────────────────────────
+      if (y + 80 > pageHeight - 36) {
         currentPage = doc.pages.add();
-        y = 20;
+        y = 36;
       }
-      y += 8;
+      
+      _drawRoundedRect(currentPage, 0, y, pageWidth, 60, _bgWhite, border: _borderGray, radius: 8);
 
-      _drawRoundedRect(currentPage, 0, y, pageWidth, 28, _primaryDark);
-      currentPage.graphics.drawString(
-        '  Semester GPA Summary',
-        PdfStandardFont(PdfFontFamily.helvetica, 11, style: PdfFontStyle.bold),
-        brush: PdfSolidBrush(_textWhite),
-        bounds: Rect.fromLTWH(8, y + 6, 220, 18),
+      // Trophy Icon Box
+      currentPage.graphics.drawEllipse(
+        Rect.fromLTWH(16, y + 10, 40, 40),
+        brush: PdfSolidBrush(_primaryDark),
       );
-      y += 32;
+      // Mock trophy drawing
+      final tPen = PdfPen(_bgWhite, width: 1.5);
+      currentPage.graphics.drawLine(tPen, Offset(30, y + 18), Offset(42, y + 18));
+      currentPage.graphics.drawRectangle(pen: tPen, bounds: Rect.fromLTWH(32, y + 18, 8, 8));
+      currentPage.graphics.drawLine(tPen, Offset(36, y + 26), Offset(36, y + 32));
+      currentPage.graphics.drawLine(tPen, Offset(30, y + 32), Offset(42, y + 32));
 
-      for (final sem in sortedSemesters) {
-        if (y + 24 > pageHeight - 40) {
-          currentPage = doc.pages.add();
-          y = 20;
-        }
-        _drawRoundedRect(currentPage, 0, y, pageWidth, 22, _bgCard);
-        currentPage.graphics.drawString(
-          sem.label,
-          PdfStandardFont(PdfFontFamily.helvetica, 9),
-          brush: PdfSolidBrush(_textMidBlue),
-          bounds: Rect.fromLTWH(10, y + 5, 200, 14),
-        );
-        currentPage.graphics.drawString(
-          '${sem.courses.length} modules  •  ${sem.totalCredits.toStringAsFixed(1)} credits  •  GPA: ${sem.semesterGpa.toStringAsFixed(2)}',
-          PdfStandardFont(PdfFontFamily.helvetica, 9),
-          brush: PdfSolidBrush(_primary),
-          bounds: Rect.fromLTWH(pageWidth - 260, y + 5, 256, 14),
-          format: PdfStringFormat(alignment: PdfTextAlignment.right),
-        );
-        y += 24;
-      }
-
-      // Final cumulative GPA row
-      y += 8;
-      if (y + 38 > pageHeight - 20) {
-        currentPage = doc.pages.add();
-        y = 20;
-      }
-      _drawRoundedRect(currentPage, 0, y, pageWidth, 38, _primary);
       currentPage.graphics.drawString(
-        '  FINAL CUMULATIVE GPA',
-        PdfStandardFont(PdfFontFamily.helvetica, 11, style: PdfFontStyle.bold),
-        brush: PdfSolidBrush(_textWhite),
-        bounds: Rect.fromLTWH(10, y + 10, 200, 18),
+        'Summary',
+        PdfStandardFont(PdfFontFamily.helvetica, 10, style: PdfFontStyle.bold),
+        brush: PdfSolidBrush(_primaryDark),
+        bounds: Rect.fromLTWH(68, y + 16, 120, 14),
       );
       currentPage.graphics.drawString(
-        '${cumulativeGpa.toStringAsFixed(2)} / 4.00  ─  $gpaStatus',
-        PdfStandardFont(PdfFontFamily.helvetica, 12, style: PdfFontStyle.bold),
-        brush: PdfSolidBrush(_textWhite),
-        bounds: Rect.fromLTWH(pageWidth - 226, y + 10, 222, 18),
-        format: PdfStringFormat(alignment: PdfTextAlignment.right),
-      );
-
-      // ── FOOTER ─────────────────────────────────────────────────────────
-      final lastPage = doc.pages[doc.pages.count - 1];
-      final lastH = lastPage.getClientSize().height;
-      lastPage.graphics.drawLine(
-        PdfPen(PdfColor(200, 198, 240), width: 0.5),
-        Offset(0, lastH - 26),
-        Offset(pageWidth, lastH - 26),
-      );
-      lastPage.graphics.drawString(
-        'Generated by ScheduleMate  •  $dateStr  •  Unofficial Academic Record',
+        'Academic Performance Overview',
         PdfStandardFont(PdfFontFamily.helvetica, 8),
-        brush: PdfSolidBrush(_footerText),
-        bounds: Rect.fromLTWH(0, lastH - 20, pageWidth, 16),
-        format: PdfStringFormat(alignment: PdfTextAlignment.center),
+        brush: PdfSolidBrush(_textSubtle),
+        bounds: Rect.fromLTWH(68, y + 32, 160, 12),
       );
+
+      final totalCreditsAttempted = totalCredits; // Simplify logic
+      double totalQualityPoints = semesters.fold(0, (s, sem) => s + sem.courses.fold(0, (cs, c) => cs + c.qualityPoints));
+
+      // Right Stats
+      final statWFoot = (pageWidth - 200) / 3;
+      final fTitles = ['Total Points Obtained', 'Total Credits', 'Average GPA'];
+      final fVals1 = [totalQualityPoints.toStringAsFixed(0), totalCreditsAttempted.toStringAsFixed(1), cumulativeGpa.toStringAsFixed(2)];
+      final fVals2 = [' / ${(totalCreditsAttempted * 4.0).toStringAsFixed(0)}', '', ' / 4.00'];
+
+      for (int i = 0; i < 3; i++) {
+        final sx = 200 + (i * statWFoot);
+        if (i > 0) {
+          currentPage.graphics.drawLine(
+            PdfPen(_borderGray, width: 1),
+            Offset(sx, y + 15),
+            Offset(sx, y + 45),
+          );
+        }
+        currentPage.graphics.drawString(
+          fTitles[i],
+          PdfStandardFont(PdfFontFamily.helvetica, 8),
+          brush: PdfSolidBrush(_textSubtle),
+          bounds: Rect.fromLTWH(sx + 8, y + 16, statWFoot - 16, 12),
+        );
+        currentPage.graphics.drawString(
+          fVals1[i],
+          PdfStandardFont(PdfFontFamily.helvetica, 12, style: PdfFontStyle.bold),
+          brush: PdfSolidBrush(_primaryDark),
+          bounds: Rect.fromLTWH(sx + 8, y + 32, 30, 16),
+        );
+        if (fVals2[i].isNotEmpty) {
+           currentPage.graphics.drawString(
+            fVals2[i],
+            PdfStandardFont(PdfFontFamily.helvetica, 9),
+            brush: PdfSolidBrush(_textSubtle),
+            bounds: Rect.fromLTWH(sx + 8 + (fVals1[i].length * 7.5), y + 35, 40, 16),
+          );
+        }
+      }
 
       // ── SAVE ────────────────────────────────────────────────────────────
       final bytes = await doc.save();
@@ -433,7 +449,7 @@ class ReportService {
       final dir = await getTemporaryDirectory();
       final safeName = (studentName.isNotEmpty ? studentName : 'Student')
           .replaceAll(RegExp(r'[^\w]'), '_');
-      final file = File('${dir.path}/${safeName}_ResultSheet_${now.year}.pdf');
+      final file = File('${dir.path}/${safeName}_ResultSheet_${DateTime.now().year}.pdf');
       await file.writeAsBytes(bytes);
 
       if (context.mounted) {
@@ -456,7 +472,6 @@ class ReportService {
     }
   }
 
-  /// Draws a filled rectangle with slightly rounded corners using a PdfPath.
   static void _drawRoundedRect(
     PdfPage page,
     double x,
@@ -465,18 +480,19 @@ class ReportService {
     double h,
     PdfColor color, {
     double radius = 8,
+    PdfColor? border,
   }) {
     final r = radius.clamp(0.0, (w < h ? w : h) / 2);
     final path = PdfPath();
-    // Top-left arc
     path.addArc(Rect.fromLTWH(x, y, r * 2, r * 2), 180, 90);
-    // Top-right arc
     path.addArc(Rect.fromLTWH(x + w - r * 2, y, r * 2, r * 2), 270, 90);
-    // Bottom-right arc
     path.addArc(Rect.fromLTWH(x + w - r * 2, y + h - r * 2, r * 2, r * 2), 0, 90);
-    // Bottom-left arc
     path.addArc(Rect.fromLTWH(x, y + h - r * 2, r * 2, r * 2), 90, 90);
     path.closeFigure();
-    page.graphics.drawPath(path, brush: PdfSolidBrush(color));
+    
+    page.graphics.drawPath(path, 
+      brush: PdfSolidBrush(color),
+      pen: border != null ? PdfPen(border, width: 1) : null,
+    );
   }
 }
