@@ -40,6 +40,7 @@ Perfect for students who want to:
   <img src="ss/Screenshot%202026-07-20%20162219.png" width="220" />
   <img src="ss/Screenshot%202026-07-20%20162236.png" width="220" />
   <img src="ss/Screenshot%202026-07-20%20162254.png" width="220" />
+  <img src="ss/Screenshot%202026-07-26%20092129.png" width="220" />
 </div>
 
 ---
