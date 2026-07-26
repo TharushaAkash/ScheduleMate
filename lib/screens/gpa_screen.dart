@@ -685,6 +685,12 @@ class _GpaScreenState extends State<GpaScreen> {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 
+    final Map<int, List<Semester>> groupedSemesters = {};
+    for (var sem in provider.semesters) {
+      groupedSemesters.putIfAbsent(sem.year, () => []).add(sem);
+    }
+    final sortedYears = groupedSemesters.keys.toList()..sort();
+
     return Scaffold(
       backgroundColor: isDark ? const Color(0xFF1E1E2E) : const Color(0xFFF8F7FF),
       appBar: AppBar(
@@ -778,13 +784,21 @@ class _GpaScreenState extends State<GpaScreen> {
               sliver: SliverList(
                 delegate: SliverChildBuilderDelegate(
                   (context, index) {
-                    final semester = provider.semesters[index];
+                    final year = sortedYears[index];
+                    final yearSemesters = groupedSemesters[year]!;
+                    
                     return Container(
                       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                       decoration: BoxDecoration(
                         color: isDark ? const Color(0xFF252535) : Colors.white,
                         borderRadius: BorderRadius.circular(20),
-                        boxShadow: [BoxShadow(color: Colors.black.withOpacity(isDark ? 0.3 : 0.07), blurRadius: 16, offset: const Offset(0, 4))],
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(isDark ? 0.3 : 0.07),
+                            blurRadius: 16,
+                            offset: const Offset(0, 4),
+                          )
+                        ],
                       ),
                       child: Theme(
                         data: theme.copyWith(dividerColor: Colors.transparent),
@@ -792,23 +806,29 @@ class _GpaScreenState extends State<GpaScreen> {
                           tilePadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                           shape: const RoundedRectangleBorder(side: BorderSide.none),
                           leading: Container(
-                            width: 48, height: 48,
+                            width: 48,
+                            height: 48,
                             decoration: BoxDecoration(
                               color: const Color(0xFF4A44CC),
                               borderRadius: BorderRadius.circular(14),
                             ),
-                            child: Center(child: Text('S${semester.semesterNumber}', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16))),
+                            child: Center(
+                              child: Text(
+                                'Y$year',
+                                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
+                              ),
+                            ),
                           ),
                           title: Row(
                             children: [
                               Flexible(
                                 child: Text(
-                                  semester.label, 
-                                  style: TextStyle(fontWeight: FontWeight.w600, fontSize: 15, color: isDark ? Colors.white : Colors.black87),
+                                  'Year $year',
+                                  style: TextStyle(fontWeight: FontWeight.w600, fontSize: 16, color: isDark ? Colors.white : Colors.black87),
                                   overflow: TextOverflow.ellipsis,
                                 ),
                               ),
-                              if (index == 0) ...[
+                              if (index == sortedYears.length - 1) ...[
                                 const SizedBox(width: 8),
                                 Container(
                                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
@@ -823,104 +843,17 @@ class _GpaScreenState extends State<GpaScreen> {
                           ),
                           subtitle: Padding(
                             padding: const EdgeInsets.only(top: 4.0),
-                            child: Text('GPA: ${semester.semesterGpa.toStringAsFixed(2)}  •  ${semester.totalCredits.toStringAsFixed(1)} cr', style: TextStyle(color: isDark ? Colors.white54 : Colors.black45, fontSize: 13)),
-                          ),
-                          trailing: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Text(
-                                semester.semesterGpa.toStringAsFixed(2),
-                                style: TextStyle(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold,
-                                  color: semester.semesterGpa >= 3.25 ? const Color(0xFF4ADE80) : const Color(0xFF9C96FF),
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              Icon(Icons.arrow_forward_ios_rounded, size: 14, color: isDark ? Colors.white54 : Colors.black45),
-                            ],
-                          ),
-                        children: [
-                          const Divider(height: 1, indent: 16, endIndent: 16),
-                          ...semester.courses.map((c) => Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                            child: Row(
-                              children: [
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Text('${c.moduleCode} — ${c.moduleName}', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14, color: isDark ? Colors.white : Colors.black87)),
-                                      Text('${c.creditHours} credits', style: TextStyle(fontSize: 12, color: isDark ? Colors.white54 : Colors.black45)),
-                                    ],
-                                  ),
-                                ),
-                                Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                                  decoration: BoxDecoration(
-                                    color: _getGradeColor(c.grade).withOpacity(0.12),
-                                    borderRadius: BorderRadius.circular(10),
-                                  ),
-                                  child: Text(c.grade, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: _getGradeColor(c.grade))),
-                                ),
-                                IconButton(
-                                  icon: const Icon(Icons.edit_rounded, size: 18, color: Colors.grey),
-                                  onPressed: () => _showEditCourseDialog(context, semester.id!, c),
-                                ),
-                                IconButton(
-                                  icon: const Icon(Icons.close_rounded, size: 18, color: Colors.grey),
-                                  onPressed: () => provider.deleteCourse(semester.id!, c.id!),
-                                ),
-                              ],
-                            ),
-                          )),
-                          Padding(
-                            padding: const EdgeInsets.all(16.0),
-                            child: Row(
-                              children: [
-                                Expanded(
-                                  child: OutlinedButton.icon(
-                                    icon: const Icon(Icons.add_rounded),
-                                    label: const Text('Add'),
-                                    onPressed: () => _showAddCourseDialog(context, semester.id!),
-                                    style: OutlinedButton.styleFrom(
-                                      foregroundColor: theme.colorScheme.primary,
-                                      side: BorderSide(color: theme.colorScheme.primary.withOpacity(0.5)),
-                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                                    ),
-                                  ),
-                                ),
-                                const SizedBox(width: 8),
-                                Expanded(
-                                  child: OutlinedButton.icon(
-                                    icon: const Icon(Icons.picture_as_pdf),
-                                    label: const Text('PDFs'),
-                                    onPressed: () => _extractMultipleGradesFromPdfs(context, semester.id!),
-                                    style: OutlinedButton.styleFrom(
-                                      foregroundColor: theme.colorScheme.secondary,
-                                      side: BorderSide(color: theme.colorScheme.secondary.withOpacity(0.5)),
-                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                                    ),
-                                  ),
-                                ),
-                                const SizedBox(width: 12),
-                                IconButton(
-                                  icon: const Icon(Icons.delete_outline_rounded, color: Colors.redAccent),
-                                  onPressed: () => provider.deleteSemester(semester.id!),
-                                  style: IconButton.styleFrom(
-                                    backgroundColor: Colors.redAccent.withOpacity(0.1),
-                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                                  ),
-                                ),
-                              ],
+                            child: Text(
+                              '${yearSemesters.length} Semester${yearSemesters.length == 1 ? '' : 's'}',
+                              style: TextStyle(color: isDark ? Colors.white54 : Colors.black45, fontSize: 13),
                             ),
                           ),
-                        ],
+                          children: yearSemesters.map((semester) => _buildSemesterCard(context, semester, isDark, theme, provider)).toList(),
+                        ),
                       ),
-                    ),
-                  );
+                    );
                   },
-                  childCount: provider.semesters.length,
+                  childCount: sortedYears.length,
                 ),
               ),
             ),
@@ -931,6 +864,132 @@ class _GpaScreenState extends State<GpaScreen> {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildSemesterCard(BuildContext context, Semester semester, bool isDark, ThemeData theme, GpaProvider provider) {
+    return Container(
+      margin: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF1E1E2E) : const Color(0xFFF8F7FF),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: isDark ? Colors.white12 : Colors.grey.shade200),
+      ),
+      child: Theme(
+        data: theme.copyWith(dividerColor: Colors.transparent),
+        child: ExpansionTile(
+          tilePadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+          shape: const RoundedRectangleBorder(side: BorderSide.none),
+          leading: Container(
+            width: 40, height: 40,
+            decoration: BoxDecoration(
+              color: const Color(0xFF4A44CC).withOpacity(0.15),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Center(child: Text('S${semester.semesterNumber}', style: const TextStyle(color: Color(0xFF6C63FF), fontWeight: FontWeight.bold, fontSize: 14))),
+          ),
+          title: Text(
+            'Semester ${semester.semesterNumber}', 
+            style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14, color: isDark ? Colors.white : Colors.black87),
+          ),
+          subtitle: Text('GPA: ${semester.semesterGpa.toStringAsFixed(2)}  •  ${semester.totalCredits.toStringAsFixed(1)} cr', style: TextStyle(color: isDark ? Colors.white54 : Colors.black45, fontSize: 12)),
+          trailing: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                semester.semesterGpa.toStringAsFixed(2),
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: semester.semesterGpa >= 3.25 ? const Color(0xFF4ADE80) : const Color(0xFF9C96FF),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Icon(Icons.arrow_forward_ios_rounded, size: 14, color: isDark ? Colors.white54 : Colors.black45),
+            ],
+          ),
+          children: [
+            const Divider(height: 1, indent: 16, endIndent: 16),
+            ...semester.courses.map((c) => Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('${c.moduleCode} — ${c.moduleName}', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: isDark ? Colors.white : Colors.black87)),
+                        Text('${c.creditHours} credits', style: TextStyle(fontSize: 11, color: isDark ? Colors.white54 : Colors.black45)),
+                      ],
+                    ),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: _getGradeColor(c.grade).withOpacity(0.12),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(c.grade, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: _getGradeColor(c.grade))),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.edit_rounded, size: 16, color: Colors.grey),
+                    onPressed: () => _showEditCourseDialog(context, semester.id!, c),
+                    constraints: const BoxConstraints(),
+                    padding: const EdgeInsets.all(8),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close_rounded, size: 16, color: Colors.grey),
+                    onPressed: () => provider.deleteCourse(semester.id!, c.id!),
+                    constraints: const BoxConstraints(),
+                    padding: const EdgeInsets.all(8),
+                  ),
+                ],
+              ),
+            )),
+            Padding(
+              padding: const EdgeInsets.all(12.0),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      icon: const Icon(Icons.add_rounded, size: 18),
+                      label: const Text('Add', style: TextStyle(fontSize: 12)),
+                      onPressed: () => _showAddCourseDialog(context, semester.id!),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: theme.colorScheme.primary,
+                        side: BorderSide(color: theme.colorScheme.primary.withOpacity(0.5)),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      icon: const Icon(Icons.picture_as_pdf, size: 18),
+                      label: const Text('PDFs', style: TextStyle(fontSize: 12)),
+                      onPressed: () => _extractMultipleGradesFromPdfs(context, semester.id!),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: theme.colorScheme.secondary,
+                        side: BorderSide(color: theme.colorScheme.secondary.withOpacity(0.5)),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  IconButton(
+                    icon: const Icon(Icons.delete_outline_rounded, color: Colors.redAccent, size: 18),
+                    onPressed: () => provider.deleteSemester(semester.id!),
+                    style: IconButton.styleFrom(
+                      backgroundColor: Colors.redAccent.withOpacity(0.1),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
