@@ -25,7 +25,9 @@ class BackupService extends ChangeNotifier {
   BackupService._internal();
   static final BackupService instance = BackupService._internal();
 
-  final gsi.GoogleSignIn _googleSignIn = gsi.GoogleSignIn.instance;
+  final gsi.GoogleSignIn _googleSignIn = gsi.GoogleSignIn(
+    scopes: [drive.DriveApi.driveAppdataScope],
+  );
 
   gsi.GoogleSignInAccount? _currentUser;
   gsi.GoogleSignInAccount? get currentUser => _currentUser;
@@ -33,21 +35,14 @@ class BackupService extends ChangeNotifier {
   bool get isSignedIn => _currentUser != null;
 
   Future<void> init() async {
-    await _googleSignIn.initialize();
-    
-    _googleSignIn.authenticationEvents.listen((event) {
-      if (event is gsi.GoogleSignInAuthenticationEventSignIn) {
-        _currentUser = event.user;
-        _saveProfileData(event.user);
-      } else if (event is gsi.GoogleSignInAuthenticationEventSignOut) {
-        _currentUser = null;
-        _saveProfileData(null);
-      }
+    _googleSignIn.onCurrentUserChanged.listen((account) {
+      _currentUser = account;
+      _saveProfileData(account);
       notifyListeners();
     });
 
     try {
-      await _googleSignIn.attemptLightweightAuthentication();
+      await _googleSignIn.signInSilently();
     } catch (e) {
       debugPrint('Silent sign in failed: $e');
     }
@@ -66,7 +61,7 @@ class BackupService extends ChangeNotifier {
 
   Future<void> signIn() async {
     try {
-      final account = await _googleSignIn.authenticate(scopeHint: [drive.DriveApi.driveAppdataScope]);
+      final account = await _googleSignIn.signIn();
       _currentUser = account;
       await _saveProfileData(account);
       notifyListeners();
@@ -91,11 +86,7 @@ class BackupService extends ChangeNotifier {
     final account = _currentUser;
     if (account == null) return null;
 
-    final authHeaders = await account.authorizationClient.authorizationHeaders(
-      [drive.DriveApi.driveAppdataScope],
-      promptIfNecessary: true,
-    );
-    if (authHeaders == null) return null;
+    final authHeaders = await account.authHeaders;
 
     final authClient = GoogleAuthClient(authHeaders);
     return drive.DriveApi(authClient);
