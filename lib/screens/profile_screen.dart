@@ -6,6 +6,7 @@ import '../providers/theme_provider.dart';
 import '../providers/timetable_provider.dart';
 import '../providers/gpa_provider.dart';
 import '../services/backup_service.dart';
+import '../services/report_service.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -573,7 +574,42 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
                           );
                         },
                       ),
-                      const SizedBox(height: 40),
+                      const SizedBox(height: 16),
+                      // Download Result Sheet
+                      Consumer<GpaProvider>(
+                        builder: (context, gpaProvider, _) {
+                          return SizedBox(
+                            width: double.infinity,
+                            height: 56,
+                            child: ElevatedButton.icon(
+                              onPressed: gpaProvider.semesters.isEmpty
+                                  ? null
+                                  : () => ReportService.generateAndDownloadResultSheet(
+                                        context: context,
+                                        studentName: _studentNameController.text.trim(),
+                                        studentId: _studentIdController.text.trim(),
+                                        semesters: gpaProvider.semesters,
+                                        cumulativeGpa: gpaProvider.cumulativeGpa,
+                                      ),
+                              icon: const Icon(Icons.download_rounded),
+                              label: const Text(
+                                'Download Result Sheet',
+                                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                              ),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: const Color(0xFF00D4AA),
+                                foregroundColor: Colors.white,
+                                disabledBackgroundColor: Colors.grey.shade300,
+                                elevation: 0,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(16),
+                                ),
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                      const SizedBox(height: 12),
                       SizedBox(
                         width: double.infinity,
                         height: 56,
