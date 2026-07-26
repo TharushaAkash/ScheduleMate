@@ -93,7 +93,7 @@ class ReportService {
 
       // Logo image
       try {
-        final ByteData data = await rootBundle.load('assets/icon/app_icon.png');
+        final ByteData data = await rootBundle.load('readme-assets/app_icon.png');
         final Uint8List imageBytes = data.buffer.asUint8List();
         final PdfBitmap image = PdfBitmap(imageBytes);
         page.graphics.drawImage(image, const Rect.fromLTWH(14, 18, 62, 62));
