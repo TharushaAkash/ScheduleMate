@@ -36,6 +36,16 @@ class GpaProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  Future<void> updateCourse(int semesterId, Course updatedCourse) async {
+    await DatabaseHelper.instance.updateCourse(updatedCourse);
+    final semester = _semesters.firstWhere((s) => s.id == semesterId);
+    final index = semester.courses.indexWhere((c) => c.id == updatedCourse.id);
+    if (index != -1) {
+      semester.courses[index] = updatedCourse;
+      notifyListeners();
+    }
+  }
+
   Future<void> deleteCourse(int semesterId, int courseId) async {
     await DatabaseHelper.instance.deleteCourse(courseId);
     final semester = _semesters.firstWhere((s) => s.id == semesterId);

@@ -205,6 +205,11 @@ class DatabaseHelper {
     await db.delete('courses', where: 'id = ?', whereArgs: [id]);
   }
 
+  Future<void> updateCourse(Course c) async {
+    final db = await database;
+    await db.update('courses', c.toMap(), where: 'id = ?', whereArgs: [c.id]);
+  }
+
   // ---------- Timetable ----------
   Future<void> replaceTimetableEntries(List<TimetableEntry> entries) async {
     final db = await database;

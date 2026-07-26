@@ -165,6 +165,167 @@ class _GpaScreenState extends State<GpaScreen> {
     );
   }
 
+  Widget _buildDynamicGpaCard(GpaProvider provider, bool isDark) {
+    final gpa = provider.cumulativeGpa;
+    
+    double trend = 0.0;
+    if (provider.semesters.length > 1) {
+      final sortedSemesters = List<Semester>.from(provider.semesters)
+        ..sort((a, b) {
+          if (a.year == b.year) return a.semesterNumber.compareTo(b.semesterNumber);
+          return a.year.compareTo(b.year);
+        });
+      final prevSemesters = sortedSemesters.sublist(0, sortedSemesters.length - 1);
+      final prevGpa = CumulativeGpaCalculator.calculate(prevSemesters);
+      trend = gpa - prevGpa;
+    }
+
+    List<Color> gradientColors;
+    String statusText;
+    String rankText;
+
+    if (gpa >= 3.7) {
+      gradientColors = const [Color(0xFF4A44CC), Color(0xFF332D99)];
+      statusText = "Outstanding";
+      rankText = "You're in the Top 5% of your batch! 👑";
+    } else if (gpa >= 3.0) {
+      gradientColors = const [Color(0xFF4A44CC), Color(0xFF332D99)];
+      statusText = "Excellent";
+      rankText = "You're in the Top 25% of your batch! ✨";
+    } else if (gpa >= 2.7) {
+      gradientColors = const [Color(0xFF1ABC9C), Color(0xFF16A085)];
+      statusText = "Good";
+      rankText = "You're in the Top 50% of your batch! 📈";
+    } else if (gpa >= 2.5) {
+      gradientColors = const [Color(0xFFE67E22), Color(0xFFD35400)];
+      statusText = "Average";
+      rankText = "Keep pushing! You can improve this! 💪";
+    } else {
+      gradientColors = const [Color(0xFFCC4444), Color(0xFF992D2D)];
+      statusText = "Needs Work";
+      rankText = "Time to focus! Let's bring this up! 🔥";
+    }
+
+    final isTrendPositive = trend >= 0;
+    final trendColor = isTrendPositive ? Colors.greenAccent : Colors.redAccent;
+    final trendIcon = isTrendPositive ? Icons.arrow_upward : Icons.arrow_downward;
+    final trendText = trend.abs().toStringAsFixed(2);
+
+    return Container(
+      margin: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: gradientColors,
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [
+          BoxShadow(
+            color: gradientColors.first.withOpacity(0.4),
+            blurRadius: 20,
+            offset: const Offset(0, 8),
+          )
+        ],
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('Cumulative GPA',
+                    style: TextStyle(fontSize: 13, color: Colors.white70, fontWeight: FontWeight.w500)),
+                const SizedBox(height: 8),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    Text(
+                      gpa.toStringAsFixed(2),
+                      style: const TextStyle(fontSize: 48, fontWeight: FontWeight.bold, color: Colors.white),
+                    ),
+                    const SizedBox(width: 12),
+                    if (provider.semesters.length > 1)
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: trendColor.withOpacity(0.2),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(trendIcon, color: trendColor, size: 12),
+                            const SizedBox(width: 4),
+                            Text(trendText, style: TextStyle(color: trendColor, fontWeight: FontWeight.bold, fontSize: 12)),
+                          ],
+                        ),
+                      ),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  '${provider.semesters.length} semester${provider.semesters.length == 1 ? '' : 's'} recorded',
+                  style: const TextStyle(fontSize: 12, color: Colors.white70),
+                ),
+                const SizedBox(height: 20),
+                Stack(
+                  children: [
+                    Container(
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.2),
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                    FractionallySizedBox(
+                      widthFactor: gpa / 4.0,
+                      child: Container(
+                        height: 4,
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(2),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                Text(rankText, 
+                  style: const TextStyle(color: Colors.white70, fontSize: 11, fontWeight: FontWeight.w500)),
+              ],
+            ),
+          ),
+          const SizedBox(width: 16),
+          Column(
+            children: [
+              Stack(
+                alignment: Alignment.center,
+                children: [
+                  SizedBox(
+                    height: 75,
+                    width: 75,
+                    child: CircularProgressIndicator(
+                      value: gpa / 4.0,
+                      strokeWidth: 6,
+                      backgroundColor: Colors.white.withOpacity(0.2),
+                      valueColor: const AlwaysStoppedAnimation<Color>(Colors.white),
+                    ),
+                  ),
+                  const Icon(Icons.school_rounded, color: Colors.white, size: 32),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Text(statusText, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 13)),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildSemesterStats(List<Semester> semesters, bool isDark) {
     if (semesters.isEmpty) return const SizedBox.shrink();
     
@@ -579,118 +740,7 @@ class _GpaScreenState extends State<GpaScreen> {
             child: Column(
               children: [
                 _buildNextLectureCard(timetableProvider, isDark),
-                Container(
-                  margin: const EdgeInsets.fromLTRB(16, 8, 16, 8),
-                  padding: const EdgeInsets.all(24),
-                  decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                      colors: [Color(0xFF4A44CC), Color(0xFF332D99)],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
-                    borderRadius: BorderRadius.circular(24),
-                    boxShadow: [
-                      BoxShadow(
-                        color: const Color(0xFF4A44CC).withOpacity(0.4),
-                        blurRadius: 20,
-                        offset: const Offset(0, 8),
-                      )
-                    ],
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text('Cumulative GPA',
-                                style: TextStyle(fontSize: 13, color: Colors.white70, fontWeight: FontWeight.w500)),
-                            const SizedBox(height: 8),
-                            Row(
-                              crossAxisAlignment: CrossAxisAlignment.center,
-                              children: [
-                                Text(
-                                  provider.cumulativeGpa.toStringAsFixed(2),
-                                  style: const TextStyle(fontSize: 48, fontWeight: FontWeight.bold, color: Colors.white),
-                                ),
-                                const SizedBox(width: 12),
-                                Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                  decoration: BoxDecoration(
-                                    color: Colors.greenAccent.withOpacity(0.2),
-                                    borderRadius: BorderRadius.circular(8),
-                                  ),
-                                  child: const Row(
-                                    children: [
-                                      Icon(Icons.arrow_upward, color: Colors.greenAccent, size: 12),
-                                      SizedBox(width: 4),
-                                      Text('0.17', style: TextStyle(color: Colors.greenAccent, fontWeight: FontWeight.bold, fontSize: 12)),
-                                    ],
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              '${provider.semesters.length} semester${provider.semesters.length == 1 ? '' : 's'} recorded',
-                              style: const TextStyle(fontSize: 12, color: Colors.white70),
-                            ),
-                            const SizedBox(height: 20),
-                            Stack(
-                              children: [
-                                Container(
-                                  height: 4,
-                                  decoration: BoxDecoration(
-                                    color: Colors.white.withOpacity(0.2),
-                                    borderRadius: BorderRadius.circular(2),
-                                  ),
-                                ),
-                                FractionallySizedBox(
-                                  widthFactor: provider.cumulativeGpa / 4.0,
-                                  child: Container(
-                                    height: 4,
-                                    decoration: BoxDecoration(
-                                      color: Colors.white,
-                                      borderRadius: BorderRadius.circular(2),
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 16),
-                            const Text("You're in the Top 25% of your batch! 👑", 
-                              style: TextStyle(color: Colors.white70, fontSize: 11, fontWeight: FontWeight.w500)),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(width: 16),
-                      Column(
-                        children: [
-                          Stack(
-                            alignment: Alignment.center,
-                            children: [
-                              SizedBox(
-                                height: 75,
-                                width: 75,
-                                child: CircularProgressIndicator(
-                                  value: provider.cumulativeGpa / 4.0,
-                                  strokeWidth: 6,
-                                  backgroundColor: Colors.white.withOpacity(0.2),
-                                  valueColor: const AlwaysStoppedAnimation<Color>(Colors.white),
-                                ),
-                              ),
-                              const Icon(Icons.school_rounded, color: Colors.white, size: 32),
-                            ],
-                          ),
-                          const SizedBox(height: 12),
-                          const Text('Excellent', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 13)),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
+                _buildDynamicGpaCard(provider, isDark),
                 _buildActionButtons(isDark),
                 _buildSemesterStats(provider.semesters, isDark),
                 Padding(
@@ -812,6 +862,10 @@ class _GpaScreenState extends State<GpaScreen> {
                                     borderRadius: BorderRadius.circular(10),
                                   ),
                                   child: Text(c.grade, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: _getGradeColor(c.grade))),
+                                ),
+                                IconButton(
+                                  icon: const Icon(Icons.edit_rounded, size: 18, color: Colors.grey),
+                                  onPressed: () => _showEditCourseDialog(context, semester.id!, c),
                                 ),
                                 IconButton(
                                   icon: const Icon(Icons.close_rounded, size: 18, color: Colors.grey),
@@ -1011,6 +1065,78 @@ class _GpaScreenState extends State<GpaScreen> {
               Navigator.pop(ctx);
             },
             child: const Text('Add'),
+          ),
+        ],
+      ),
+    );
+  }
+
+
+  void _showEditCourseDialog(BuildContext context, int semesterId, Course course) {
+    final codeController = TextEditingController(text: course.moduleCode);
+    final nameController = TextEditingController(text: course.moduleName);
+    final creditController = TextEditingController(text: course.creditHours.toString());
+    String grade = course.grade;
+
+    if (!Course.gradePoints.containsKey(grade)) {
+      grade = 'A';
+    }
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Edit Module'),
+        content: StatefulBuilder(
+          builder: (ctx, setState) => SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: codeController,
+                  decoration: const InputDecoration(labelText: 'Module Code'),
+                ),
+                TextField(
+                  controller: nameController,
+                  decoration: const InputDecoration(labelText: 'Module Name'),
+                ),
+                TextField(
+                  controller: creditController,
+                  decoration: const InputDecoration(labelText: 'Credit Hours'),
+                  keyboardType: TextInputType.number,
+                ),
+                DropdownButtonFormField<String>(
+                  value: grade,
+                  decoration: const InputDecoration(labelText: 'Grade'),
+                  items: Course.gradePoints.keys
+                      .map((g) => DropdownMenuItem(value: g, child: Text(g)))
+                      .toList(),
+                  onChanged: (v) => setState(() => grade = v!),
+                ),
+              ],
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+          FilledButton(
+            onPressed: () {
+              if (nameController.text.trim().isEmpty) return;
+              context.read<GpaProvider>().updateCourse(
+                    semesterId,
+                    Course(
+                      id: course.id,
+                      semesterId: semesterId,
+                      moduleCode: codeController.text.trim(),
+                      moduleName: nameController.text.trim(),
+                      creditHours:
+                          double.tryParse(creditController.text) ?? course.creditHours,
+                      grade: grade,
+                    ),
+                  );
+              Navigator.pop(ctx);
+            },
+            child: const Text('Save'),
           ),
         ],
       ),
