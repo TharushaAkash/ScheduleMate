@@ -1,5 +1,7 @@
 import 'dart:io';
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart' show rootBundle;
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:syncfusion_flutter_pdf/pdf.dart';
@@ -89,17 +91,25 @@ class ReportService {
         brush: PdfSolidBrush(_transparentTeal),
       );
 
-      // Logo box
-      page.graphics.drawRectangle(
-        brush: PdfSolidBrush(_transparentWhite),
-        bounds: const Rect.fromLTWH(14, 18, 62, 62),
-      );
-      page.graphics.drawString(
-        'SM',
-        PdfStandardFont(PdfFontFamily.helvetica, 24, style: PdfFontStyle.bold),
-        brush: PdfSolidBrush(_textWhite),
-        bounds: const Rect.fromLTWH(22, 30, 46, 40),
-      );
+      // Logo image
+      try {
+        final ByteData data = await rootBundle.load('assets/icon/app_icon.png');
+        final Uint8List imageBytes = data.buffer.asUint8List();
+        final PdfBitmap image = PdfBitmap(imageBytes);
+        page.graphics.drawImage(image, const Rect.fromLTWH(14, 18, 62, 62));
+      } catch (e) {
+        // Fallback to text if image fails
+        page.graphics.drawRectangle(
+          brush: PdfSolidBrush(_transparentWhite),
+          bounds: const Rect.fromLTWH(14, 18, 62, 62),
+        );
+        page.graphics.drawString(
+          'SM',
+          PdfStandardFont(PdfFontFamily.helvetica, 24, style: PdfFontStyle.bold),
+          brush: PdfSolidBrush(_textWhite),
+          bounds: const Rect.fromLTWH(22, 30, 46, 40),
+        );
+      }
 
       page.graphics.drawString(
         'ScheduleMate',
