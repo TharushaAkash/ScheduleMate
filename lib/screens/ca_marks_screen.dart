@@ -137,164 +137,177 @@ class _CaMarksScreenState extends State<CaMarksScreen>
     final result = await FilePicker.platform.pickFiles(
       type: FileType.custom,
       allowedExtensions: ['pdf'],
+      allowMultiple: true,
     );
 
-    if (result != null && result.files.single.path != null) {
-      _processPdf(result.files.single.path!, result.files.single.name);
+    if (result != null && result.files.isNotEmpty) {
+      _processPdfs(result.files);
     }
   }
 
-  Future<void> _processPdf(String path, String fileName) async {
+  Future<void> _processPdfs(List<PlatformFile> files) async {
     setState(() {
       _isLoading = true;
       _errorMessage = null;
     });
 
     try {
-      final bytes = await File(path).readAsBytes();
-      final document = PdfDocument(inputBytes: bytes);
-      final extractor = PdfTextExtractor(document);
-      final text = extractor.extractText(layoutText: true);
+      List<Map<String, dynamic>> allNewMarks = [];
+      int notFoundCount = 0;
 
-      final lines = text
-          .split('\n')
-          .map((e) => e.trim())
-          .where((e) => e.isNotEmpty)
-          .toList();
+      for (var file in files) {
+        if (file.path == null) continue;
+        final bytes = await File(file.path!).readAsBytes();
+        final document = PdfDocument(inputBytes: bytes);
+        final extractor = PdfTextExtractor(document);
+        final text = extractor.extractText(layoutText: true);
 
-      List<Map<String, dynamic>> newMarks = [];
+        final lines = text
+            .split('\n')
+            .map((e) => e.trim())
+            .where((e) => e.isNotEmpty)
+            .toList();
 
-      for (int i = 0; i < lines.length; i++) {
-        if (lines[i].contains(_studentId!)) {
-          String safeId = _studentId!.replaceAll(' ', '_');
-          String studentLine = lines[i].replaceAll(_studentId!, safeId);
+        bool foundInThisPdf = false;
 
-          List<String> studentData = studentLine
-              .split(RegExp(r'\s{2,}|\t'))
-              .map((e) => e.trim())
-              .where((e) => e.isNotEmpty)
-              .toList();
-          if (studentData.length <= 1) {
-            studentData = studentLine
-                .split(RegExp(r'\s+'))
-                .map((e) => e.trim())
-                .where((e) => e.isNotEmpty)
-                .toList();
-          }
+        for (int i = 0; i < lines.length; i++) {
+          if (lines[i].contains(_studentId!)) {
+            foundInThisPdf = true;
+            String safeId = _studentId!.replaceAll(' ', '_');
+            String studentLine = lines[i].replaceAll(_studentId!, safeId);
 
-          int idIndex = studentData.indexOf(safeId);
-          if (idIndex != -1 && idIndex + 1 < studentData.length) {
-            int nameStart = idIndex + 1;
-            int nameEnd = nameStart;
-            while (nameEnd < studentData.length &&
-                !RegExp(r'\d').hasMatch(studentData[nameEnd])) {
-              nameEnd++;
-            }
-            if (nameEnd > nameStart + 1) {
-              String mergedName =
-                  studentData.sublist(nameStart, nameEnd).join(' ');
-              studentData.replaceRange(nameStart, nameEnd, [mergedName]);
-            }
-          }
-
-          List<String> headers = [];
-          for (int j = i - 1; j >= 0; j--) {
-            var pHeader = lines[j]
+            List<String> studentData = studentLine
                 .split(RegExp(r'\s{2,}|\t'))
                 .map((e) => e.trim())
                 .where((e) => e.isNotEmpty)
                 .toList();
-            if (pHeader.length <= 1) {
-              pHeader = lines[j]
+            if (studentData.length <= 1) {
+              studentData = studentLine
                   .split(RegExp(r'\s+'))
                   .map((e) => e.trim())
                   .where((e) => e.isNotEmpty)
                   .toList();
             }
-            bool hasHeaderWords = pHeader.any((h) {
-              final lower = h.toLowerCase().replaceAll(RegExp(r'[^a-z]'), '');
-              return [
-                'no','sno','id','reg','regno','name','mark','ca','index','student','total','grade'
-              ].contains(lower);
-            });
-            if (hasHeaderWords && pHeader.length > 1) {
-              String joined = pHeader.join(' ');
-              joined = joined.replaceAll(
-                  RegExp(r'(Reg|Registration)\s+No', caseSensitive: false),
-                  'Reg_No');
-              joined = joined.replaceAll(
-                  RegExp(r'(Index|Student)\s+No', caseSensitive: false),
-                  'Index_No');
-              joined = joined.replaceAll(
-                  RegExp(r'Student\s+Name', caseSensitive: false),
-                  'Student_Name');
-              joined = joined.replaceAll(
-                  RegExp(r'CA\s+Mark(s?)', caseSensitive: false), 'CA_Mark');
-              joined = joined.replaceAll(
-                  RegExp(r'Final\s+Mark(s?)', caseSensitive: false),
-                  'Final_Mark');
-              headers = joined
-                  .split(RegExp(r'\s+'))
-                  .map((e) => e.replaceAll('_', ' ').trim())
+
+            int idIndex = studentData.indexOf(safeId);
+            if (idIndex != -1 && idIndex + 1 < studentData.length) {
+              int nameStart = idIndex + 1;
+              int nameEnd = nameStart;
+              while (nameEnd < studentData.length &&
+                  !RegExp(r'\d').hasMatch(studentData[nameEnd])) {
+                nameEnd++;
+              }
+              if (nameEnd > nameStart + 1) {
+                String mergedName =
+                    studentData.sublist(nameStart, nameEnd).join(' ');
+                studentData.replaceRange(nameStart, nameEnd, [mergedName]);
+              }
+            }
+
+            List<String> headers = [];
+            for (int j = i - 1; j >= 0; j--) {
+              var pHeader = lines[j]
+                  .split(RegExp(r'\s{2,}|\t'))
+                  .map((e) => e.trim())
                   .where((e) => e.isNotEmpty)
                   .toList();
-              break;
-            }
-          }
-
-          String moduleCode = "Unknown";
-          String moduleName = "Module Name";
-          for (int j = i - 1; j >= 0; j--) {
-            final match =
-                RegExp(r'([A-Za-z]{2,3}\s?\d{3,4})\s*(.*)').firstMatch(lines[j]);
-            if (match != null) {
-              moduleCode = match.group(1)!.trim();
-              moduleName = match.group(2)!.trim();
-              if (moduleName.startsWith('-')) {
-                moduleName = moduleName.substring(1).trim();
+              if (pHeader.length <= 1) {
+                pHeader = lines[j]
+                    .split(RegExp(r'\s+'))
+                    .map((e) => e.trim())
+                    .where((e) => e.isNotEmpty)
+                    .toList();
               }
-              break;
-            }
-          }
-
-          if (moduleCode == "Unknown") {
-            moduleName = fileName.replaceAll('.pdf', '');
-          }
-
-          Map<String, String> marksMap = {};
-          if (studentData.isEmpty) {
-            marksMap['Raw'] = lines[i];
-          } else {
-            for (int k = 0; k < studentData.length; k++) {
-              String header =
-                  k < headers.length ? headers[k] : "Col ${k + 1}";
-              if (header.isEmpty) header = "Col ${k + 1}";
-              String key = header;
-              int counter = 1;
-              while (marksMap.containsKey(key)) {
-                key = "$header ($counter)";
-                counter++;
+              bool hasHeaderWords = pHeader.any((h) {
+                final lower = h.toLowerCase().replaceAll(RegExp(r'[^a-z]'), '');
+                return [
+                  'no','sno','id','reg','regno','name','mark','ca','index','student','total','grade'
+                ].contains(lower);
+              });
+              if (hasHeaderWords && pHeader.length > 1) {
+                String joined = pHeader.join(' ');
+                joined = joined.replaceAll(
+                    RegExp(r'(Reg|Registration)\s+No', caseSensitive: false),
+                    'Reg_No');
+                joined = joined.replaceAll(
+                    RegExp(r'(Index|Student)\s+No', caseSensitive: false),
+                    'Index_No');
+                joined = joined.replaceAll(
+                    RegExp(r'Student\s+Name', caseSensitive: false),
+                    'Student_Name');
+                joined = joined.replaceAll(
+                    RegExp(r'CA\s+Mark(s?)', caseSensitive: false), 'CA_Mark');
+                joined = joined.replaceAll(
+                    RegExp(r'Final\s+Mark(s?)', caseSensitive: false),
+                    'Final_Mark');
+                headers = joined
+                    .split(RegExp(r'\s+'))
+                    .map((e) => e.replaceAll('_', ' ').trim())
+                    .where((e) => e.isNotEmpty)
+                    .toList();
+                break;
               }
-              marksMap[key] = studentData[k];
             }
-          }
 
-          newMarks.add({
-            'moduleCode': moduleCode,
-            'moduleName': moduleName,
-            'marks': marksMap,
-          });
+            String moduleCode = "Unknown";
+            String moduleName = "Module Name";
+            for (int j = i - 1; j >= 0; j--) {
+              final match =
+                  RegExp(r'([A-Za-z]{2,3}\s?\d{3,4})\s*(.*)').firstMatch(lines[j]);
+              if (match != null) {
+                moduleCode = match.group(1)!.trim();
+                moduleName = match.group(2)!.trim();
+                if (moduleName.startsWith('-')) {
+                  moduleName = moduleName.substring(1).trim();
+                }
+                break;
+              }
+            }
+
+            if (moduleCode == "Unknown") {
+              moduleName = file.name.replaceAll('.pdf', '');
+            }
+
+            Map<String, String> marksMap = {};
+            if (studentData.isEmpty) {
+              marksMap['Raw'] = lines[i];
+            } else {
+              for (int k = 0; k < studentData.length; k++) {
+                String header =
+                    k < headers.length ? headers[k] : "Col ${k + 1}";
+                if (header.isEmpty) header = "Col ${k + 1}";
+                String key = header;
+                int counter = 1;
+                while (marksMap.containsKey(key)) {
+                  key = "$header ($counter)";
+                  counter++;
+                }
+                marksMap[key] = studentData[k];
+              }
+            }
+
+            allNewMarks.add({
+              'moduleCode': moduleCode,
+              'moduleName': moduleName,
+              'marks': marksMap,
+            });
+          }
         }
+        
+        if (!foundInThisPdf) {
+          notFoundCount++;
+        }
+        document.dispose();
       }
 
-      if (newMarks.isEmpty) {
+      if (allNewMarks.isEmpty) {
         setState(() {
           _errorMessage =
-              "Student ID $_studentId not found in the PDF.";
+              "Student ID $_studentId not found in ${files.length == 1 ? 'the PDF' : 'any of the selected PDFs'}.";
           _isLoading = false;
         });
       } else {
-        await _saveMarksData(newMarks);
+        await _saveMarksData(allNewMarks);
         setState(() => _isLoading = false);
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -303,7 +316,12 @@ class _CaMarksScreenState extends State<CaMarksScreen>
                 children: [
                   const Icon(Icons.check_circle_rounded, color: Colors.white),
                   const SizedBox(width: 8),
-                  Text('${newMarks.length} module(s) extracted!'),
+                  Expanded(
+                    child: Text(
+                      '${allNewMarks.length} module(s) extracted!' +
+                      (notFoundCount > 0 ? ' ($notFoundCount PDF(s) skipped)' : '')
+                    ),
+                  ),
                 ],
               ),
               backgroundColor: const Color(0xFF00D4AA),
@@ -315,10 +333,9 @@ class _CaMarksScreenState extends State<CaMarksScreen>
           );
         }
       }
-      document.dispose();
     } catch (e) {
       setState(() {
-        _errorMessage = "Failed to process PDF: $e";
+        _errorMessage = "Failed to parse PDF(s). Please try again.";
         _isLoading = false;
       });
     }
