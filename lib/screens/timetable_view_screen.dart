@@ -17,7 +17,6 @@ class _TimetableViewScreenState extends State<TimetableViewScreen>
   String? selectedDay;
   late AnimationController _animController;
   late Animation<double> _fadeAnim;
-  bool _isPushEnabled = false;
 
   final List<String> _availableDays = const [
     'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'
@@ -43,19 +42,6 @@ class _TimetableViewScreenState extends State<TimetableViewScreen>
   }
 
   Future<void> _loadPushSettings() async {
-    final prefs = await SharedPreferences.getInstance();
-    final provider = context.read<TimetableProvider>();
-    final currentId = '${provider.selectedSemester}_${provider.selectedGroup}_${provider.selectedSubGroup}';
-    final semester = prefs.getString('notified_semester');
-    final group = prefs.getString('notified_group');
-    final subGroup = prefs.getString('notified_subgroup');
-    final notifiedId = (semester != null && group != null && subGroup != null)
-        ? '${semester}_${group}_$subGroup'
-        : null;
-    
-    setState(() {
-      _isPushEnabled = notifiedId == currentId;
-    });
   }
 
   @override

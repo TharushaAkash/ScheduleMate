@@ -121,10 +121,18 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
                           shape: BoxShape.circle,
                           color: Colors.white.withOpacity(0.15),
                           border: Border.all(color: Colors.white.withOpacity(0.5), width: 2),
+                          image: backupService.isSignedIn && backupService.currentUser?.photoUrl != null
+                              ? DecorationImage(
+                                  image: NetworkImage(backupService.currentUser!.photoUrl!),
+                                  fit: BoxFit.cover,
+                                )
+                              : null,
                         ),
-                        child: Center(
-                          child: Text(
-                            _getInitials(),
+                        child: backupService.isSignedIn && backupService.currentUser?.photoUrl != null
+                            ? null
+                            : Center(
+                                child: Text(
+                                  _getInitials(),
                             style: const TextStyle(
                               fontSize: 28,
                               fontWeight: FontWeight.bold,
@@ -185,31 +193,10 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
                       _ModernTextField(
                         controller: _studentIdController,
                         label: 'Student ID',
-                        hint: 'e.g. IT12345678',
+                        hint: 'e.g. IT 24 1011 10',
                         icon: Icons.fingerprint_rounded,
                         isDark: isDark,
                         onChanged: (_) => setState(() {}),
-                      ),
-                      const SizedBox(height: 24),
-                      SizedBox(
-                        width: double.infinity,
-                        height: 56,
-                        child: ElevatedButton.icon(
-                          onPressed: _saveProfileData,
-                          icon: const Icon(Icons.save_rounded),
-                          label: const Text(
-                            'Save Profile',
-                            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                          ),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: primary,
-                            foregroundColor: Colors.white,
-                            elevation: 0,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(16),
-                            ),
-                          ),
-                        ),
                       ),
 
                       const SizedBox(height: 32),
@@ -442,11 +429,12 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
                                               }
                                             }
                                           },
-                                          icon: const Icon(Icons.login),
+                                          icon: Image.asset('assets/google_logo.png', height: 24),
                                           label: const Text('Sign in with Google'),
                                           style: ElevatedButton.styleFrom(
-                                            backgroundColor: primary,
-                                            foregroundColor: Colors.white,
+                                            backgroundColor: Colors.white,
+                                            foregroundColor: Colors.black87,
+                                            elevation: 2,
                                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                                           ),
                                         ),
@@ -518,8 +506,9 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
                                                   icon: const Icon(Icons.cloud_upload_rounded),
                                                   label: const Text('Backup'),
                                                   style: ElevatedButton.styleFrom(
-                                                    backgroundColor: Colors.blueAccent,
-                                                    foregroundColor: Colors.white,
+                                                    backgroundColor: isDark ? const Color(0xFF333344) : Colors.grey[200],
+                                                    foregroundColor: isDark ? Colors.white : Colors.black87,
+                                                    elevation: 0,
                                                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                                                     padding: const EdgeInsets.symmetric(vertical: 12),
                                                   ),
@@ -565,8 +554,9 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
                                                   icon: const Icon(Icons.cloud_download_rounded),
                                                   label: const Text('Restore'),
                                                   style: ElevatedButton.styleFrom(
-                                                    backgroundColor: Colors.orangeAccent,
-                                                    foregroundColor: Colors.white,
+                                                    backgroundColor: isDark ? const Color(0xFF333344) : Colors.grey[200],
+                                                    foregroundColor: isDark ? Colors.white : Colors.black87,
+                                                    elevation: 0,
                                                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                                                     padding: const EdgeInsets.symmetric(vertical: 12),
                                                   ),
@@ -582,6 +572,27 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
                             ],
                           );
                         },
+                      ),
+                      const SizedBox(height: 40),
+                      SizedBox(
+                        width: double.infinity,
+                        height: 56,
+                        child: ElevatedButton.icon(
+                          onPressed: _saveProfileData,
+                          icon: const Icon(Icons.save_rounded),
+                          label: const Text(
+                            'Save Profile',
+                            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                          ),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: primary,
+                            foregroundColor: Colors.white,
+                            elevation: 0,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                          ),
+                        ),
                       ),
                       const SizedBox(height: 40),
                     ],

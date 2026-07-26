@@ -35,6 +35,7 @@ Track GPA in real-time, import faculty timetables from HTML exports, and stay on
   <img src="ss/Screenshot%202026-07-20%20162219.png" width="200" />
   <img src="ss/Screenshot%202026-07-20%20162236.png" width="200" />
   <img src="ss/Screenshot%202026-07-20%20162254.png" width="200" />
+  <img src="ss/Screenshot%202026-07-26%20092129.png" width="200" />
 </div>
 
 ---

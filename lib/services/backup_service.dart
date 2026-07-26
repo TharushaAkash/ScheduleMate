@@ -34,6 +34,7 @@ class BackupService extends ChangeNotifier {
 
   Future<void> init() async {
     await _googleSignIn.initialize();
+    
     _googleSignIn.authenticationEvents.listen((event) {
       if (event is gsi.GoogleSignInAuthenticationEventSignIn) {
         _currentUser = event.user;
@@ -44,6 +45,12 @@ class BackupService extends ChangeNotifier {
       }
       notifyListeners();
     });
+
+    try {
+      await _googleSignIn.attemptLightweightAuthentication();
+    } catch (e) {
+      debugPrint('Silent sign in failed: $e');
+    }
   }
 
   Future<void> _saveProfileData(gsi.GoogleSignInAccount? account) async {
