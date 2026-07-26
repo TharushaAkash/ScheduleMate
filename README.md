@@ -43,7 +43,11 @@ Track GPA in real-time, import faculty timetables from HTML exports, and stay on
 ## ✨ Features
 
 * 📊 **GPA Calculator** — Real-time semester GPA calculation with cumulative tracking and customizable grade point scales.
+* 🗂️ **Structured GPA View** — Semesters are grouped by academic year, providing a clean and organized overview of your progress.
+* 📄 **Result Sheet Generation** — Export a beautifully formatted PDF report of your academic performance and grades.
 * 📅 **Smart Timetable Import** — Import schedules directly from faculty HTML exports with automatic parsing.
+* 📚 **CA Marks Extraction** — Upload multiple PDFs at once to automatically extract and track your Continuous Assessment marks.
+* ☁️ **Cloud Backup** — Seamlessly back up and restore your data using Google Drive integration.
 * 🔔 **Class Reminders** — Weekly notification reminders with customizable lead times for Android 12+.
 * 💾 **Offline First** — All data stored locally via SQLite — no internet connection required.
 * 🗂️ **Organized by Day/Week** — View your timetable in a clean, structured layout organized by day and time slot.
