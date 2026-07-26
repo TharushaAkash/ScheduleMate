@@ -827,11 +827,24 @@ class _GpaScreenState extends State<GpaScreen> {
                                 Expanded(
                                   child: OutlinedButton.icon(
                                     icon: const Icon(Icons.add_rounded),
-                                    label: const Text('Add Module'),
+                                    label: const Text('Add'),
                                     onPressed: () => _showAddCourseDialog(context, semester.id!),
                                     style: OutlinedButton.styleFrom(
                                       foregroundColor: theme.colorScheme.primary,
                                       side: BorderSide(color: theme.colorScheme.primary.withOpacity(0.5)),
+                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: OutlinedButton.icon(
+                                    icon: const Icon(Icons.picture_as_pdf),
+                                    label: const Text('PDFs'),
+                                    onPressed: () => _extractMultipleGradesFromPdfs(context, semester.id!),
+                                    style: OutlinedButton.styleFrom(
+                                      foregroundColor: theme.colorScheme.secondary,
+                                      side: BorderSide(color: theme.colorScheme.secondary.withOpacity(0.5)),
                                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                                     ),
                                   ),
@@ -917,7 +930,7 @@ class _GpaScreenState extends State<GpaScreen> {
   void _showAddCourseDialog(BuildContext context, int semesterId) {
     final codeController = TextEditingController();
     final nameController = TextEditingController();
-    final creditController = TextEditingController(text: '3');
+    final creditController = TextEditingController(text: '4');
     String grade = 'A';
     bool isExtracting = false;
 
@@ -1076,7 +1089,7 @@ class _GpaScreenState extends State<GpaScreen> {
                 semesterId: 0,
                 moduleCode: moduleCode,
                 moduleName: moduleName,
-                creditHours: 3.0, 
+                creditHours: 4.0, 
                 grade: grade,
               );
             }
@@ -1099,6 +1112,117 @@ class _GpaScreenState extends State<GpaScreen> {
       }
     }
     return null;
+  }
+
+  Future<void> _extractMultipleGradesFromPdfs(BuildContext context, int semesterId) async {
+    final prefs = await SharedPreferences.getInstance();
+    final studentId = prefs.getString('student_id');
+
+    if (studentId == null || studentId.isEmpty) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Please set your Student ID in Profile first.')),
+        );
+      }
+      return;
+    }
+
+    AuthScreen.bypassNextLifecycleLock = true;
+    final result = await FilePicker.platform.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: ['pdf'],
+      allowMultiple: true,
+    );
+
+    if (result != null && result.files.isNotEmpty) {
+      int addedCount = 0;
+      
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Processing PDFs...')),
+        );
+      }
+
+      for (var file in result.files) {
+        if (file.path == null) continue;
+        
+        try {
+          final bytes = await File(file.path!).readAsBytes();
+          final document = PdfDocument(inputBytes: bytes);
+          final extractor = PdfTextExtractor(document);
+          final text = extractor.extractText(layoutText: true);
+          final lines = text.split('\n').map((e) => e.trim()).where((e) => e.isNotEmpty).toList();
+
+          String safeId = studentId.replaceAll(' ', '_');
+          Course? foundCourse;
+
+          for (int i = 0; i < lines.length; i++) {
+            if (lines[i].contains(studentId)) {
+              String studentLine = lines[i].replaceAll(studentId, safeId);
+              List<String> studentData = studentLine.split(RegExp(r'\s{2,}|\t')).map((e) => e.trim()).where((e) => e.isNotEmpty).toList();
+              if (studentData.length <= 1) {
+                studentData = studentLine.split(RegExp(r'\s+')).map((e) => e.trim()).where((e) => e.isNotEmpty).toList();
+              }
+
+              String? grade;
+              final validGrades = Course.gradePoints.keys.toList();
+              for (int k = studentData.length - 1; k >= 0; k--) {
+                if (validGrades.contains(studentData[k])) {
+                  grade = studentData[k];
+                  break;
+                }
+              }
+
+              String moduleCode = "";
+              String moduleName = "";
+              for (int j = i - 1; j >= 0; j--) {
+                final match = RegExp(r'([A-Za-z]{2,3}\s?\d{3,4})\s*(.*)').firstMatch(lines[j]);
+                if (match != null) {
+                  moduleCode = match.group(1)!.trim();
+                  moduleName = match.group(2)!.trim();
+                  if (moduleName.startsWith('-')) {
+                    moduleName = moduleName.substring(1).trim();
+                  }
+                  break;
+                }
+              }
+
+              if (grade != null) {
+                foundCourse = Course(
+                  semesterId: semesterId,
+                  moduleCode: moduleCode.isEmpty ? "Unknown" : moduleCode,
+                  moduleName: moduleName.isEmpty ? "Unknown Module" : moduleName,
+                  creditHours: 4.0, 
+                  grade: grade,
+                );
+                break;
+              }
+            }
+          }
+
+          document.dispose();
+
+          if (foundCourse != null && context.mounted) {
+            context.read<GpaProvider>().addCourse(semesterId, foundCourse);
+            addedCount++;
+          }
+        } catch (e) {
+          debugPrint('Failed to process PDF ${file.name}: $e');
+        }
+      }
+
+      if (context.mounted) {
+        if (addedCount > 0) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Successfully added $addedCount module(s)!'), backgroundColor: Colors.green),
+          );
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('No grades found matching your Student ID in the selected PDFs.'), backgroundColor: Colors.orange),
+          );
+        }
+      }
+    }
   }
 }
 
