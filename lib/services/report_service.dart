@@ -127,13 +127,13 @@ class ReportService {
         cumulativeGpa.toStringAsFixed(2),
         PdfStandardFont(PdfFontFamily.helvetica, 28, style: PdfFontStyle.bold),
         brush: PdfSolidBrush(_primaryDark),
-        bounds: Rect.fromLTWH(gpaBoxX + 14, 42, 70, 30),
+        bounds: Rect.fromLTWH(gpaBoxX + 12, 38, 70, 40),
       );
       page.graphics.drawString(
         '/ 4.00',
         PdfStandardFont(PdfFontFamily.helvetica, 10),
         brush: PdfSolidBrush(_textSubtle),
-        bounds: Rect.fromLTWH(gpaBoxX + 70, 56, 40, 18),
+        bounds: Rect.fromLTWH(gpaBoxX + 72, 54, 40, 20),
       );
 
       String gpaStatus;
