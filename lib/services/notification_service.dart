@@ -250,22 +250,7 @@ class NotificationService {
     );
   }
 
-  Future<void> showTestNotification() async {
-    await _plugin.show(
-      8000,
-      'Test Notification',
-      'If you see this, notifications are working perfectly!',
-      const NotificationDetails(
-        android: AndroidNotificationDetails(
-          _channelId,
-          _channelName,
-          importance: Importance.high,
-          priority: Priority.high,
-        ),
-        iOS: DarwinNotificationDetails(),
-      ),
-    );
-  }
+
 
   Future<void> cancelAll() async => _plugin.cancelAll();
 

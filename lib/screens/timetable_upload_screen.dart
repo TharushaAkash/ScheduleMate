@@ -220,8 +220,6 @@ class _TimetableUploadScreenState extends State<TimetableUploadScreen>
                                     await context
                                         .read<TimetableProvider>()
                                         .scheduleReminders();
-                                    await NotificationService.instance
-                                        .showTestNotification();
                                     if (!mounted) return;
                                     await _loadSavedProfiles();
                                     Navigator.of(context).push(MaterialPageRoute(
@@ -297,7 +295,6 @@ class _TimetableUploadScreenState extends State<TimetableUploadScreen>
                               }
                               // scheduleReminders() now returns exact alarm times
                               final summary = context.mounted ? await context.read<TimetableProvider>().scheduleReminders() : null;
-                              await NotificationService.instance.showTestNotification();
                               setState(() => _notifiedId = currentId);
                               if (context.mounted) {
                                 ScaffoldMessenger.of(context).showSnackBar(SnackBar(
