@@ -3,6 +3,7 @@ import 'package:timezone/timezone.dart' as tz;
 import 'package:timezone/data/latest_all.dart' as tz_data;
 import 'package:flutter_timezone/flutter_timezone.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 
 import '../models/timetable_entry.dart';
 
@@ -17,6 +18,8 @@ class NotificationService {
   static const _channelName = 'Class Reminders';
   static const _announcementChannelId = 'lms_announcements';
   static const _announcementChannelName = 'LMS Announcements';
+  static const _fcmChannelId = 'fcm_updates';
+  static const _fcmChannelName = 'App Updates';
 
   Future<void> init() async {
     tz_data.initializeTimeZones();
@@ -67,6 +70,14 @@ class NotificationService {
       importance: Importance.high,
     );
     await androidImpl?.createNotificationChannel(announcementChannel);
+    
+    const fcmChannel = AndroidNotificationChannel(
+      _fcmChannelId,
+      _fcmChannelName,
+      description: 'Important updates and messages from developers',
+      importance: Importance.high,
+    );
+    await androidImpl?.createNotificationChannel(fcmChannel);
 
     await _plugin
         .resolvePlatformSpecificImplementation<
@@ -242,6 +253,25 @@ class NotificationService {
         android: AndroidNotificationDetails(
           _announcementChannelId,
           _announcementChannelName,
+          importance: Importance.high,
+          priority: Priority.high,
+        ),
+        iOS: DarwinNotificationDetails(),
+      ),
+    );
+  }
+
+  Future<void> showFCMNotification(RemoteMessage message) async {
+    final title = message.notification?.title ?? 'New Message';
+    final body = message.notification?.body ?? '';
+    await _plugin.show(
+      message.messageId.hashCode,
+      title,
+      body,
+      const NotificationDetails(
+        android: AndroidNotificationDetails(
+          _fcmChannelId,
+          _fcmChannelName,
           importance: Importance.high,
           priority: Priority.high,
         ),

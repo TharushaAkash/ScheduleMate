@@ -24,10 +24,11 @@ class UpdateService {
         final currentVersion = packageInfo.version;
 
         if (_isNewVersionAvailable(currentVersion, latestVersion)) {
-          final String downloadUrl = data['html_url'];
+          final String releaseTitle = data['name'] ?? 'New version available';
+          final String downloadUrl = 'https://sourceforge.net/projects/schedulemate/files/v$latestVersion/ScheduleMate_v$latestVersion.apk/download';
           
           if (context.mounted) {
-            _showUpdateDialog(context, latestVersion, downloadUrl);
+            _showUpdateDialog(context, latestVersion, releaseTitle, downloadUrl);
           }
         }
       }
@@ -52,13 +53,32 @@ class UpdateService {
     }
   }
 
-  static void _showUpdateDialog(BuildContext context, String latestVersion, String downloadUrl) {
+  static void _showUpdateDialog(BuildContext context, String latestVersion, String releaseTitle, String downloadUrl) {
     showDialog(
       context: context,
       barrierDismissible: false,
       builder: (context) => AlertDialog(
-        title: const Text('New Update Available!'),
-        content: Text('A new version ($latestVersion) of ScheduleMate is available. Would you like to download it now?'),
+        title: const Text('✨ New Update Available!'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'A new version ($latestVersion) of ScheduleMate is available!',
+              style: const TextStyle(fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              '🚀 $releaseTitle',
+              style: TextStyle(
+                color: Theme.of(context).colorScheme.primary,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(height: 8),
+            const Text('Would you like to download it now?'),
+          ],
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
@@ -76,7 +96,7 @@ class UpdateService {
                 await launchUrl(url, mode: LaunchMode.externalApplication);
               }
             },
-            child: const Text('Download'),
+            child: const Text('Update Now'),
           ),
         ],
       ),

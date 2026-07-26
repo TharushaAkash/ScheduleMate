@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 
 import 'providers/announcement_provider.dart';
 import 'providers/gpa_provider.dart';
@@ -9,9 +11,46 @@ import 'providers/timetable_provider.dart';
 import 'screens/auth_screen.dart';
 import 'services/notification_service.dart';
 import 'services/backup_service.dart';
+import 'providers/app_notification_provider.dart';
+
+@pragma('vm:entry-point')
+Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
+  await Firebase.initializeApp();
+  debugPrint("Handling a background message: ${message.messageId}");
+  if (message.notification != null) {
+    await AppNotificationProvider.saveMessageToPrefs(
+      message.messageId ?? DateTime.now().millisecondsSinceEpoch.toString(),
+      message.notification!.title ?? 'New Message',
+      message.notification!.body ?? '',
+    );
+  }
+}
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  
+  // Initialize Firebase
+  await Firebase.initializeApp();
+  
+  // Setup FCM Background Handler
+  FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
+  
+  // Subscribe to 'all' topic for general announcements
+  FirebaseMessaging.instance.subscribeToTopic('all');
+  
+  // Setup FCM Foreground Handler
+  FirebaseMessaging.onMessage.listen((RemoteMessage message) async {
+    if (message.notification != null) {
+      await AppNotificationProvider.saveMessageToPrefs(
+        message.messageId ?? DateTime.now().millisecondsSinceEpoch.toString(),
+        message.notification!.title ?? 'New Message',
+        message.notification!.body ?? '',
+      );
+      AppNotificationProvider.updateStream.add(null);
+      NotificationService.instance.showFCMNotification(message);
+    }
+  });
+
   SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
     statusBarColor: Colors.transparent,
     statusBarIconBrightness: Brightness.light,
@@ -43,6 +82,7 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => TimetableProvider()),
         ChangeNotifierProvider(create: (_) => ThemeProvider()),
         ChangeNotifierProvider(create: (_) => AnnouncementProvider()),
+        ChangeNotifierProvider(create: (_) => AppNotificationProvider()),
         ChangeNotifierProvider.value(value: BackupService.instance),
       ],
       child: Consumer<ThemeProvider>(

@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 import '../providers/timetable_provider.dart';
 import '../models/timetable_entry.dart';
@@ -17,6 +16,7 @@ class _TimetableViewScreenState extends State<TimetableViewScreen>
   String? selectedDay;
   late AnimationController _animController;
   late Animation<double> _fadeAnim;
+  late ScrollController _dayScrollController;
 
   final List<String> _availableDays = const [
     'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'
@@ -32,7 +32,17 @@ class _TimetableViewScreenState extends State<TimetableViewScreen>
     _fadeAnim =
         CurvedAnimation(parent: _animController, curve: Curves.easeOut);
     _animController.forward();
-    selectedDay = _availableDays.first;
+    
+    final weekday = DateTime.now().weekday; // 1 = Monday, 7 = Sunday
+    selectedDay = _availableDays[weekday - 1];
+    
+    // Each day item is 54 width + 12 margin = 66 width
+    double initialScroll = (weekday - 1) * 66.0;
+    // Adjust slightly to center it better if it's towards the end
+    if (weekday > 3) initialScroll -= 66.0;
+    if (initialScroll < 0) initialScroll = 0;
+    
+    _dayScrollController = ScrollController(initialScrollOffset: initialScroll);
     
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<TimetableProvider>().loadDefaultTimetable().then((_) {
@@ -47,6 +57,7 @@ class _TimetableViewScreenState extends State<TimetableViewScreen>
   @override
   void dispose() {
     _animController.dispose();
+    _dayScrollController.dispose();
     super.dispose();
   }
 
@@ -186,6 +197,7 @@ class _TimetableViewScreenState extends State<TimetableViewScreen>
               grouped: grouped,
               isDark: isDark,
               primary: primary,
+              scrollController: _dayScrollController,
               onDaySelected: _selectDay,
             ),
           ),
@@ -332,6 +344,7 @@ class _DayHeaderDelegate extends SliverPersistentHeaderDelegate {
   final Map<String, List<TimetableEntry>> grouped;
   final bool isDark;
   final Color primary;
+  final ScrollController scrollController;
   final ValueChanged<String> onDaySelected;
 
   _DayHeaderDelegate({
@@ -341,6 +354,7 @@ class _DayHeaderDelegate extends SliverPersistentHeaderDelegate {
     required this.grouped,
     required this.isDark,
     required this.primary,
+    required this.scrollController,
     required this.onDaySelected,
   });
 
@@ -364,6 +378,7 @@ class _DayHeaderDelegate extends SliverPersistentHeaderDelegate {
       padding: const EdgeInsets.symmetric(horizontal: 16),
       alignment: Alignment.center,
       child: SingleChildScrollView(
+        controller: scrollController,
         scrollDirection: Axis.horizontal,
         physics: const BouncingScrollPhysics(),
         child: Row(

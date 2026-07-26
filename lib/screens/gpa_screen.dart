@@ -14,6 +14,7 @@ import '../models/semester.dart';
 import '../models/timetable_entry.dart';
 import '../providers/gpa_provider.dart';
 import '../providers/timetable_provider.dart';
+import '../providers/app_notification_provider.dart';
 import 'timetable_upload_screen.dart';
 import 'ca_marks_screen.dart';
 import '../services/backup_service.dart';
@@ -57,6 +58,171 @@ class _GpaScreenState extends State<GpaScreen> {
     if (grade.startsWith('B')) return const Color(0xFF6C63FF);
     if (grade.startsWith('C')) return const Color(0xFFFFB347);
     return const Color(0xFFFF6B9D);
+  }
+
+  void _showNotificationsSheet(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        final theme = Theme.of(context);
+        final isDark = theme.brightness == Brightness.dark;
+        return Container(
+          height: MediaQuery.of(context).size.height * 0.75,
+          decoration: BoxDecoration(
+            color: isDark ? const Color(0xFF1E1E2E) : const Color(0xFFF8F7FF),
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+          ),
+          child: Column(
+            children: [
+              Container(
+                margin: const EdgeInsets.only(top: 12, bottom: 8),
+                height: 5,
+                width: 40,
+                decoration: BoxDecoration(
+                  color: isDark ? Colors.white24 : Colors.black26,
+                  borderRadius: BorderRadius.circular(2.5),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'Notifications',
+                      style: TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.bold,
+                        color: isDark ? Colors.white : Colors.black87,
+                      ),
+                    ),
+                    Consumer<AppNotificationProvider>(
+                      builder: (context, notifProvider, _) {
+                        if (notifProvider.notifications.isEmpty) return const SizedBox.shrink();
+                        return TextButton.icon(
+                          onPressed: () {
+                            notifProvider.deleteAll();
+                            Navigator.pop(context);
+                          },
+                          icon: const Icon(Icons.delete_sweep_rounded, color: Colors.redAccent, size: 20),
+                          label: const Text('Clear All', style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold)),
+                          style: TextButton.styleFrom(
+                            backgroundColor: Colors.redAccent.withOpacity(0.1),
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                          ),
+                        );
+                      }
+                    ),
+                  ],
+                ),
+              ),
+              Expanded(
+                child: Consumer<AppNotificationProvider>(
+                  builder: (context, notifProvider, _) {
+                    final notifications = notifProvider.notifications;
+                    if (notifications.isEmpty) {
+                      return Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.notifications_off_outlined, size: 64, color: isDark ? Colors.white24 : Colors.black26),
+                            const SizedBox(height: 16),
+                            Text('No notifications yet', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: isDark ? Colors.white54 : Colors.black45)),
+                          ],
+                        ),
+                      );
+                    }
+                    
+                    return ListView.builder(
+                      padding: const EdgeInsets.only(bottom: 24),
+                      itemCount: notifications.length,
+                      itemBuilder: (context, index) {
+                        final notif = notifications[index];
+                        final time = notif.timestamp;
+                        final isToday = time.day == DateTime.now().day && time.month == DateTime.now().month && time.year == DateTime.now().year;
+                        final dateStr = isToday 
+                          ? '${time.hour.toString().padLeft(2,'0')}:${time.minute.toString().padLeft(2,'0')}' 
+                          : '${time.year}-${time.month.toString().padLeft(2,'0')}-${time.day.toString().padLeft(2,'0')}';
+                          
+                        return Container(
+                          margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: isDark ? const Color(0xFF252535) : Colors.white,
+                            borderRadius: BorderRadius.circular(20),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(isDark ? 0.2 : 0.05),
+                                blurRadius: 10,
+                                offset: const Offset(0, 4),
+                              )
+                            ],
+                          ),
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(12),
+                                decoration: BoxDecoration(
+                                  color: theme.colorScheme.primary.withOpacity(0.15),
+                                  shape: BoxShape.circle,
+                                ),
+                                child: Icon(Icons.campaign_rounded, color: theme.colorScheme.primary),
+                              ),
+                              const SizedBox(width: 16),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Row(
+                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                      children: [
+                                        Expanded(
+                                          child: Text(
+                                            notif.title,
+                                            style: TextStyle(
+                                              fontWeight: FontWeight.bold,
+                                              fontSize: 16,
+                                              color: isDark ? Colors.white : Colors.black87,
+                                            ),
+                                          ),
+                                        ),
+                                        Text(
+                                          dateStr,
+                                          style: TextStyle(
+                                            fontSize: 12,
+                                            color: isDark ? Colors.white54 : Colors.black45,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 6),
+                                    Text(
+                                      notif.body,
+                                      style: TextStyle(
+                                        fontSize: 14,
+                                        color: isDark ? Colors.white70 : Colors.black87,
+                                        height: 1.4,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        );
+                      },
+                    );
+                  }
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
   }
 
   Widget _buildTrendChart(List<Semester> semesters, bool isDark) {
@@ -732,6 +898,41 @@ class _GpaScreenState extends State<GpaScreen> {
             ),
           ],
         ),
+        actions: [
+          Consumer<AppNotificationProvider>(
+            builder: (context, notifProvider, _) {
+              final hasUnread = notifProvider.unreadCount > 0;
+              return Padding(
+                padding: const EdgeInsets.only(right: 8.0),
+                child: Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    IconButton(
+                      icon: Icon(Icons.notifications_rounded, color: isDark ? Colors.white70 : Colors.black87),
+                      onPressed: () {
+                        notifProvider.markAllAsRead();
+                        _showNotificationsSheet(context);
+                      },
+                    ),
+                    if (hasUnread)
+                      Positioned(
+                        right: 12,
+                        top: 12,
+                        child: Container(
+                          padding: const EdgeInsets.all(4),
+                          decoration: BoxDecoration(
+                            color: Colors.redAccent,
+                            shape: BoxShape.circle,
+                            border: Border.all(color: isDark ? const Color(0xFF1E1E2E) : const Color(0xFFF8F7FF), width: 1.5),
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+              );
+            },
+          ),
+        ],
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => _showAddSemesterDialog(context),

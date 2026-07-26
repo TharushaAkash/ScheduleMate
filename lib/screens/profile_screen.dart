@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:package_info_plus/package_info_plus.dart';
+import 'package:flutter/services.dart';
+import 'package:share_plus/share_plus.dart';
 
 import '../providers/theme_provider.dart';
 import '../providers/timetable_provider.dart';
@@ -22,6 +25,7 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
   late Animation<double> _slideAnim;
   int _notificationTime = 30;
   bool _useBiometrics = true;
+  String _appVersion = 'Loading...';
 
   @override
   void initState() {
@@ -30,6 +34,14 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
     _slideAnim = CurvedAnimation(parent: _animController, curve: Curves.easeOutCubic);
     _animController.forward();
     _loadProfileData();
+    _loadAppVersion();
+  }
+
+  Future<void> _loadAppVersion() async {
+    final packageInfo = await PackageInfo.fromPlatform();
+    setState(() {
+      _appVersion = packageInfo.version;
+    });
   }
 
   @override
@@ -628,6 +640,147 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
                               borderRadius: BorderRadius.circular(16),
                             ),
                           ),
+                        ),
+                      ),
+                      const SizedBox(height: 40),
+                      _SectionHeader(title: 'About ScheduleMate', icon: Icons.info_outline_rounded),
+                      const SizedBox(height: 16),
+                      Container(
+                        decoration: BoxDecoration(
+                          color: isDark ? const Color(0xFF252535) : Colors.white,
+                          borderRadius: BorderRadius.circular(20),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(isDark ? 0.3 : 0.06),
+                              blurRadius: 16,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
+                        ),
+                        padding: const EdgeInsets.all(20),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Container(
+                                  width: 60,
+                                  height: 60,
+                                  decoration: BoxDecoration(
+                                    color: primary.withOpacity(0.1),
+                                    borderRadius: BorderRadius.circular(16),
+                                  ),
+                                  child: Icon(Icons.calendar_month_rounded, size: 32, color: primary),
+                                ),
+                                const SizedBox(width: 16),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        'ScheduleMate',
+                                        style: TextStyle(
+                                          fontSize: 20,
+                                          fontWeight: FontWeight.bold,
+                                          color: isDark ? Colors.white : Colors.black87,
+                                        ),
+                                      ),
+                                      Text(
+                                        'Version $_appVersion',
+                                        style: TextStyle(
+                                          fontSize: 14,
+                                          color: isDark ? Colors.white70 : Colors.black54,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 20),
+                            Text(
+                              'A smart and beautiful way to manage your university timetable and track your GPA effortlessly. Built with ❤️ for students.',
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: isDark ? Colors.white70 : Colors.black87,
+                                height: 1.5,
+                              ),
+                            ),
+                            const SizedBox(height: 20),
+                            Divider(color: Colors.grey.withOpacity(0.2), height: 1),
+                            const SizedBox(height: 20),
+                            Row(
+                              children: [
+                                Icon(Icons.developer_mode_rounded, size: 20, color: primary),
+                                const SizedBox(width: 12),
+                                Text(
+                                  'Developer',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.w600,
+                                    color: isDark ? Colors.white : Colors.black87,
+                                  ),
+                                ),
+                                const Spacer(),
+                                Text(
+                                  'Tharusha Akash',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    color: primary,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 20),
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: ElevatedButton.icon(
+                                    onPressed: () {
+                                      Clipboard.setData(const ClipboardData(text: 'https://sourceforge.net/projects/schedulemate/'));
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        SnackBar(
+                                          content: const Row(
+                                            children: [
+                                              Icon(Icons.check_circle_rounded, color: Colors.white),
+                                              SizedBox(width: 8),
+                                              Text('Link copied!'),
+                                            ],
+                                          ),
+                                          backgroundColor: primary,
+                                          behavior: SnackBarBehavior.floating,
+                                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                        ),
+                                      );
+                                    },
+                                    icon: const Icon(Icons.copy_rounded, size: 18),
+                                    label: const Text('Copy Link'),
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: isDark ? const Color(0xFF333344) : Colors.grey[200],
+                                      foregroundColor: isDark ? Colors.white : Colors.black87,
+                                      elevation: 0,
+                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: ElevatedButton.icon(
+                                    onPressed: () {
+                                      Share.share('Check out ScheduleMate! Manage your timetable and track your GPA easily: https://sourceforge.net/projects/schedulemate/');
+                                    },
+                                    icon: const Icon(Icons.share_rounded, size: 18),
+                                    label: const Text('Share'),
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: primary,
+                                      foregroundColor: Colors.white,
+                                      elevation: 0,
+                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
                         ),
                       ),
                       const SizedBox(height: 40),
