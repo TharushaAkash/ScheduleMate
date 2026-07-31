@@ -60,7 +60,7 @@ class _AuthScreenState extends State<AuthScreen> with WidgetsBindingObserver {
 
   Future<void> _authenticate() async {
     final prefs = await SharedPreferences.getInstance();
-    final useBiometrics = prefs.getBool('use_biometrics') ?? true;
+    final useBiometrics = prefs.getBool('use_biometrics') ?? false;
 
     if (!useBiometrics) {
       if (mounted) {
@@ -198,10 +198,33 @@ class _AuthScreenState extends State<AuthScreen> with WidgetsBindingObserver {
                   ),
                 ),
               if (_isAuthenticating)
-                CircularProgressIndicator(
-                  valueColor: AlwaysStoppedAnimation<Color>(
-                    isDark ? AppColors.primary : Colors.white,
-                  ),
+                Column(
+                  children: [
+                    CircularProgressIndicator(
+                      valueColor: AlwaysStoppedAnimation<Color>(
+                        isDark ? AppColors.primary : Colors.white,
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                    TextButton.icon(
+                      onPressed: () async {
+                        try {
+                          await auth.stopAuthentication();
+                        } catch (_) {}
+                        if (mounted) {
+                          setState(() {
+                            _isAuthenticating = false;
+                            _message = 'Authentication cancelled. Please try again.';
+                          });
+                        }
+                      },
+                      icon: const Icon(Icons.refresh_rounded),
+                      label: const Text('Try Again'),
+                      style: TextButton.styleFrom(
+                        foregroundColor: isDark ? Colors.white70 : Colors.white70,
+                      ),
+                    ),
+                  ],
                 ),
             ],
           ),

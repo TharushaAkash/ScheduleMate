@@ -25,8 +25,13 @@ class BackupService extends ChangeNotifier {
   BackupService._internal();
   static final BackupService instance = BackupService._internal();
 
-  final gsi.GoogleSignIn _googleSignIn = gsi.GoogleSignIn(
-    scopes: [drive.DriveApi.driveAppdataScope],
+  final gsi.GoogleSignIn googleSignIn = gsi.GoogleSignIn(
+    scopes: [
+      'email',
+      'profile',
+      drive.DriveApi.driveAppdataScope,
+      drive.DriveApi.driveScope,
+    ],
   );
 
   gsi.GoogleSignInAccount? _currentUser;
@@ -35,14 +40,19 @@ class BackupService extends ChangeNotifier {
   bool get isSignedIn => _currentUser != null;
 
   Future<void> init() async {
-    _googleSignIn.onCurrentUserChanged.listen((account) {
+    googleSignIn.onCurrentUserChanged.listen((account) {
       _currentUser = account;
       _saveProfileData(account);
       notifyListeners();
     });
 
     try {
-      await _googleSignIn.signInSilently();
+      final account = await googleSignIn.signInSilently();
+      if (account != null) {
+        _currentUser = account;
+        await _saveProfileData(account);
+        notifyListeners();
+      }
     } catch (e) {
       debugPrint('Silent sign in failed: $e');
     }
@@ -61,7 +71,7 @@ class BackupService extends ChangeNotifier {
 
   Future<void> signIn() async {
     try {
-      final account = await _googleSignIn.signIn();
+      final account = await googleSignIn.signIn();
       _currentUser = account;
       await _saveProfileData(account);
       notifyListeners();
@@ -73,7 +83,7 @@ class BackupService extends ChangeNotifier {
 
   Future<void> signOut() async {
     try {
-      await _googleSignIn.disconnect();
+      await googleSignIn.disconnect();
       _currentUser = null;
       await _saveProfileData(null);
       notifyListeners();

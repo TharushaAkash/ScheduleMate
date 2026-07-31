@@ -1,0 +1,54 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ── Rooms ──────────────────────────────────────────────────────────────────
+    match /rooms/{roomId} {
+      // Anyone authenticated can read room info (needed to join via code)
+      allow read: if request.auth != null;
+
+      // Only authenticated users can create a room
+      allow create: if request.auth != null
+        && request.resource.data.creatorUid == request.auth.uid;
+
+      // Only the creator can update/delete the room document
+      allow update, delete: if request.auth != null
+        && resource.data.creatorUid == request.auth.uid;
+
+      // ── Members subcollection ───────────────────────────────────────────────
+      match /members/{userId} {
+        // Any member of the room can read the member list
+        allow read: if request.auth != null
+          && exists(/databases/$(database)/documents/rooms/$(roomId)/members/$(request.auth.uid));
+
+        // A user can only write their own member document (on join)
+        allow create: if request.auth != null && userId == request.auth.uid;
+
+        // Room creator can delete any member; members can delete themselves (leave)
+        allow delete: if request.auth != null
+          && (get(/databases/$(database)/documents/rooms/$(roomId)).data.creatorUid == request.auth.uid
+              || userId == request.auth.uid);
+
+        allow update: if false; // role changes handled server-side
+      }
+
+      // ── Files subcollection ─────────────────────────────────────────────────
+      match /files/{fileId} {
+        // Any room member can read
+        allow read: if request.auth != null
+          && exists(/databases/$(database)/documents/rooms/$(roomId)/members/$(request.auth.uid));
+
+        // Any room member can upload / create folders
+        allow create: if request.auth != null
+          && exists(/databases/$(database)/documents/rooms/$(roomId)/members/$(request.auth.uid));
+
+        // Room creator can delete any file; uploader can delete their own file
+        allow delete: if request.auth != null
+          && (get(/databases/$(database)/documents/rooms/$(roomId)).data.creatorUid == request.auth.uid
+              || resource.data.uploadedBy == request.auth.uid);
+
+        allow update: if false;
+      }
+    }
+  }
+}

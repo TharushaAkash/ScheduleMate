@@ -57,6 +57,7 @@ Future<void> main() async {
   ));
   await NotificationService.instance.init();
   await BackupService.instance.init();
+
   runApp(const MyApp());
 }
 

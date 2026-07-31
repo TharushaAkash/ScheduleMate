@@ -9,6 +9,7 @@ import '../providers/theme_provider.dart';
 import '../providers/timetable_provider.dart';
 import '../providers/gpa_provider.dart';
 import '../services/backup_service.dart';
+import '../services/database_helper.dart';
 import '../services/report_service.dart';
 
 class ProfileScreen extends StatefulWidget {
@@ -58,7 +59,7 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
       _studentIdController.text = prefs.getString('student_id') ?? '';
       _studentNameController.text = prefs.getString('student_name') ?? '';
       _notificationTime = prefs.getInt('notification_time') ?? 30;
-      _useBiometrics = prefs.getBool('use_biometrics') ?? true;
+      _useBiometrics = prefs.getBool('use_biometrics') ?? false;
     });
   }
 
@@ -491,7 +492,10 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
                                               ),
                                               IconButton(
                                                 icon: const Icon(Icons.logout_rounded, color: Colors.redAccent),
-                                                onPressed: () => backupService.signOut(),
+                                                onPressed: () async {
+                                                  await backupService.signOut();
+                                                  await DatabaseHelper.instance.clearRooms();
+                                                },
                                                 tooltip: 'Sign Out',
                                               ),
                                             ],

@@ -5,6 +5,8 @@ import '../models/announcement.dart';
 import '../models/course.dart';
 import '../models/semester.dart';
 import '../models/timetable_entry.dart';
+import '../models/room_model.dart';
+import '../models/exam_timetable_entry.dart';
 
 class DatabaseHelper {
   DatabaseHelper._internal();
@@ -22,7 +24,7 @@ class DatabaseHelper {
     final path = join(dbPath, 'gpa_timetable_app.db');
     return openDatabase(
       path,
-      version: 4,
+      version: 10,
       onUpgrade: (db, oldVersion, newVersion) async {
         if (oldVersion < 3) {
           await db.execute('DROP TABLE IF EXISTS timetable_entries');
@@ -34,13 +36,66 @@ class DatabaseHelper {
         if (oldVersion < 4) {
           await _createBlockedAnnouncementsTable(db);
         }
+        if (oldVersion < 5) {
+          await _createRoomsTable(db);
+        }
+        if (oldVersion < 6) {
+          await _createExamTimetableTable(db);
+        }
+        if (oldVersion < 7) {
+          await _createExamTimetableTable(db);
+        }
+        if (oldVersion < 8) {
+          await _createExamTimetableTable(db);
+        }
+        if (oldVersion < 9) {
+          try {
+            await db.execute('ALTER TABLE exam_timetable_entries ADD COLUMN examType TEXT NOT NULL DEFAULT "Final Exam"');
+          } catch (_) {}
+        }
+        if (oldVersion < 10) {
+          try {
+            await db.execute('ALTER TABLE exam_timetable_entries ADD COLUMN date TEXT NOT NULL DEFAULT ""');
+            await db.execute('ALTER TABLE exam_timetable_entries ADD COLUMN time TEXT NOT NULL DEFAULT ""');
+          } catch (_) {}
+        }
       },
       onCreate: (db, version) async {
         await _createTables(db);
         await _createAnnouncementsTable(db);
         await _createBlockedAnnouncementsTable(db);
+        await _createRoomsTable(db);
+        await _createExamTimetableTable(db);
       },
     );
+  }
+
+  Future<void> _createExamTimetableTable(Database db) async {
+    await db.execute('''
+          CREATE TABLE IF NOT EXISTS exam_timetable_entries (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            subjectCode TEXT NOT NULL,
+            subjectName TEXT NOT NULL,
+            location TEXT NOT NULL,
+            dateAndTime TEXT NOT NULL,
+            date TEXT NOT NULL DEFAULT "",
+            time TEXT NOT NULL DEFAULT "",
+            seatNo TEXT NOT NULL,
+            sessionNo TEXT NOT NULL,
+            examType TEXT NOT NULL DEFAULT 'Final Exam'
+          )
+        ''');
+  }
+
+  Future<void> _createRoomsTable(Database db) async {
+    await db.execute('''
+          CREATE TABLE IF NOT EXISTS rooms (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            folderId TEXT UNIQUE NOT NULL,
+            roomName TEXT NOT NULL,
+            isCreator INTEGER NOT NULL DEFAULT 0
+          )
+        ''');
   }
 
   Future<void> _createTables(Database db) async {
@@ -146,7 +201,8 @@ class DatabaseHelper {
   Future<void> deleteAnnouncement(int id) async {
     final db = await database;
     // First, save the dedupeKey to the blocked list so it won't re-appear on next fetch
-    final rows = await db.query('announcements', where: 'id = ?', whereArgs: [id]);
+    final rows =
+        await db.query('announcements', where: 'id = ?', whereArgs: [id]);
     if (rows.isNotEmpty) {
       final key = rows.first['dedupeKey'] as String?;
       if (key != null && key.isNotEmpty) {
@@ -164,7 +220,6 @@ class DatabaseHelper {
     final db = await database;
     await db.delete('announcements');
   }
-
 
   Future<int> insertSemester(Semester s) async {
     final db = await database;
@@ -195,8 +250,8 @@ class DatabaseHelper {
 
   Future<List<Course>> getCoursesForSemester(int semesterId) async {
     final db = await database;
-    final rows = await db.query('courses',
-        where: 'semesterId = ?', whereArgs: [semesterId]);
+    final rows = await db
+        .query('courses', where: 'semesterId = ?', whereArgs: [semesterId]);
     return rows.map((r) => Course.fromMap(r)).toList();
   }
 
@@ -216,9 +271,7 @@ class DatabaseHelper {
     final batch = db.batch();
     // Clear entries for the (semester, group) combos being replaced,
     // so multiple groups/years can coexist locally, but old garbage sub-groups are removed.
-    final keys = entries
-        .map((e) => '${e.semester}|${e.group}')
-        .toSet();
+    final keys = entries.map((e) => '${e.semester}|${e.group}').toSet();
     for (final key in keys) {
       final parts = key.split('|');
       batch.delete('timetable_entries',
@@ -236,28 +289,37 @@ class DatabaseHelper {
     final db = await database;
     final rows = await db.query(
       'timetable_entries',
-      where: 'semester = ? AND groupName = ? AND (subGroup = ? OR subGroup = ? OR subGroup LIKE ? OR subGroup LIKE ?)',
-      whereArgs: [semester, groupName, subGroup, groupName, '%$subGroup%', '%$groupName%'],
+      where:
+          'semester = ? AND groupName = ? AND (subGroup = ? OR subGroup = ? OR subGroup LIKE ? OR subGroup LIKE ?)',
+      whereArgs: [
+        semester,
+        groupName,
+        subGroup,
+        groupName,
+        '%$subGroup%',
+        '%$groupName%'
+      ],
     );
     return rows.map((r) => TimetableEntry.fromMap(r)).toList();
   }
 
   Future<List<Map<String, String>>> getSavedTimetableProfiles() async {
     final db = await database;
-    final rows = await db.rawQuery('SELECT DISTINCT semester, groupName, subGroup FROM timetable_entries');
-    
+    final rows = await db.rawQuery(
+        'SELECT DISTINCT semester, groupName, subGroup FROM timetable_entries');
+
     final map = <String, Map<String, String>>{};
     for (final r in rows) {
       final s = r['semester'] as String;
       final g = r['groupName'] as String;
       final sg = r['subGroup'] as String;
       final key = '$s|$g';
-      
+
       if (!map.containsKey(key)) {
         map[key] = {'semester': s, 'groupName': g, 'subGroup': sg};
       } else {
         if (sg != g && sg.isNotEmpty && !sg.contains(',')) {
-           map[key]!['subGroup'] = sg;
+          map[key]!['subGroup'] = sg;
         }
       }
     }
@@ -281,5 +343,59 @@ class DatabaseHelper {
       where: 'id = ?',
       whereArgs: [entry.id],
     );
+  }
+
+  // ---------- Rooms ----------
+  Future<int> insertRoom(RoomModel room) async {
+    final db = await database;
+    return await db.insert(
+      'rooms',
+      room.toMap(),
+      conflictAlgorithm: ConflictAlgorithm.replace,
+    );
+  }
+
+  Future<List<RoomModel>> getRooms() async {
+    final db = await database;
+    final rows = await db.query('rooms', orderBy: 'id DESC');
+    return rows.map((r) => RoomModel.fromMap(r)).toList();
+  }
+
+  Future<void> deleteRoom(String folderId) async {
+    final db = await database;
+    await db.delete('rooms', where: 'folderId = ?', whereArgs: [folderId]);
+  }
+
+  Future<void> clearRooms() async {
+    final db = await database;
+    await db.delete('rooms');
+  }
+
+  // ---------- Exam Timetable ----------
+  Future<int> insertExamEntry(ExamTimetableEntry entry) async {
+    final db = await database;
+    return await db.insert(
+        'exam_timetable_entries', entry.toMap()..remove('id'));
+  }
+
+  Future<List<ExamTimetableEntry>> getExamEntries() async {
+    final db = await database;
+    final rows = await db.query('exam_timetable_entries', orderBy: 'id ASC');
+    return rows.map((r) => ExamTimetableEntry.fromMap(r)).toList();
+  }
+
+  Future<void> updateExamEntry(ExamTimetableEntry entry) async {
+    final db = await database;
+    await db.update(
+      'exam_timetable_entries',
+      entry.toMap(),
+      where: 'id = ?',
+      whereArgs: [entry.id],
+    );
+  }
+
+  Future<void> deleteExamEntry(int id) async {
+    final db = await database;
+    await db.delete('exam_timetable_entries', where: 'id = ?', whereArgs: [id]);
   }
 }

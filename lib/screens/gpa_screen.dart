@@ -18,6 +18,7 @@ import '../providers/app_notification_provider.dart';
 import 'timetable_upload_screen.dart';
 import 'ca_marks_screen.dart';
 import '../services/backup_service.dart';
+import 'announcements_screen.dart';
 
 class GpaScreen extends StatefulWidget {
   const GpaScreen({super.key});
@@ -862,43 +863,59 @@ class _GpaScreenState extends State<GpaScreen> {
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         toolbarHeight: 70,
-        title: Row(
-          children: [
-            Consumer<BackupService>(
-              builder: (context, backupService, _) {
-                final photoUrl = backupService.currentUser?.photoUrl;
-                if (photoUrl != null) {
-                  return Padding(
+        title: Consumer<BackupService>(
+          builder: (context, backupService, _) {
+            final photoUrl = backupService.currentUser?.photoUrl;
+            final displayName = backupService.currentUser?.displayName;
+            
+            // Get first name if display name has multiple words
+            String firstName = '';
+            if (displayName != null && displayName.isNotEmpty) {
+              firstName = displayName.split(' ')[0];
+            }
+            
+            final displayString = _studentName.isNotEmpty 
+                ? _studentName 
+                : (firstName.isNotEmpty ? firstName : 'Tharusha');
+
+            return Row(
+              children: [
+                if (photoUrl != null)
+                  Padding(
                     padding: const EdgeInsets.only(right: 12.0),
                     child: CircleAvatar(
                       radius: 20,
                       backgroundImage: NetworkImage(photoUrl),
                     ),
-                  );
-                }
-                return const SizedBox.shrink();
-              },
-            ),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('${_getGreeting()},',
-                    style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w500,
-                        color: isDark ? Colors.white54 : Colors.black45)),
-                Text(
-                  '${_studentName.isNotEmpty ? _studentName : 'Tharusha'} 👋',
-                  style: TextStyle(
-                      fontSize: 22,
-                      fontWeight: FontWeight.bold,
-                      color: isDark ? Colors.white : Colors.black87),
+                  ),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('${_getGreeting()},',
+                        style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w500,
+                            color: isDark ? Colors.white54 : Colors.black45)),
+                    Text(
+                      '$displayString 👋',
+                      style: TextStyle(
+                          fontSize: 22,
+                          fontWeight: FontWeight.bold,
+                          color: isDark ? Colors.white : Colors.black87),
+                    ),
+                  ],
                 ),
               ],
-            ),
-          ],
+            );
+          },
         ),
         actions: [
+          IconButton(
+            icon: Icon(Icons.campaign_rounded, color: isDark ? Colors.white70 : Colors.black87),
+            onPressed: () {
+              Navigator.push(context, MaterialPageRoute(builder: (_) => const AnnouncementsScreen()));
+            },
+          ),
           Consumer<AppNotificationProvider>(
             builder: (context, notifProvider, _) {
               final hasUnread = notifProvider.unreadCount > 0;

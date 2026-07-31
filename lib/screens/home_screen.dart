@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:gpa_timetable_app/services/update_service.dart';
 
-import 'announcements_screen.dart';
 import 'gpa_screen.dart';
 import 'timetable_upload_screen.dart';
 import 'ca_marks_screen.dart';
 import 'profile_screen.dart';
+import 'rooms_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -29,16 +29,16 @@ class _HomeScreenState extends State<HomeScreen> {
   final List<_NavItem> _navItems = const [
     _NavItem(Icons.school_rounded, Icons.school_rounded, 'GPA'),
     _NavItem(Icons.calendar_month_rounded, Icons.calendar_month_rounded, 'Timetable'),
+    _NavItem(Icons.folder_shared_rounded, Icons.folder_shared_rounded, 'Rooms'),
     _NavItem(Icons.description_rounded, Icons.description_rounded, 'CA Marks'),
-    _NavItem(Icons.campaign_rounded, Icons.campaign_rounded, 'Updates'),
     _NavItem(Icons.person_rounded, Icons.person_rounded, 'Profile'),
   ];
 
   List<Widget> get _pages => const [
     GpaScreen(),
     TimetableUploadScreen(),
+    RoomsScreen(),
     CaMarksScreen(),
-    AnnouncementsScreen(),
     ProfileScreen(),
   ];
 
@@ -73,11 +73,13 @@ class _HomeScreenState extends State<HomeScreen> {
               children: List.generate(_navItems.length, (i) {
                 final item = _navItems[i];
                 final selected = i == _index;
-                return _NavBarItem(
-                  icon: item.icon,
-                  label: item.label,
-                  selected: selected,
-                  onTap: () => _onNavTap(i),
+                return Expanded(
+                  child: _NavBarItem(
+                    icon: item.icon,
+                    label: item.label,
+                    selected: selected,
+                    onTap: () => _onNavTap(i),
+                  ),
                 );
               }),
             ),
@@ -117,33 +119,34 @@ class _NavBarItem extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       behavior: HitTestBehavior.opaque,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        curve: Curves.easeInOut,
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        decoration: BoxDecoration(
-          color: selected ? primary.withOpacity(0.15) : Colors.transparent,
-          borderRadius: BorderRadius.circular(16),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 6),
+            decoration: BoxDecoration(
+              color: selected ? primary.withOpacity(0.2) : Colors.transparent,
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Icon(
               icon,
               color: selected ? primary : (isDark ? Colors.white54 : Colors.grey),
-              size: selected ? 26 : 24,
+              size: 24,
             ),
-            const SizedBox(height: 4),
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 11,
-                fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
-                color: selected ? primary : (isDark ? Colors.white54 : Colors.grey),
-              ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            label,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+              color: selected ? primary : (isDark ? Colors.white54 : Colors.grey),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 
 import '../models/timetable_entry.dart';
+import '../models/exam_timetable_entry.dart';
 import '../services/database_helper.dart';
 import '../services/notification_service.dart';
 import '../services/timetable_parser.dart';
@@ -13,6 +14,7 @@ class TimetableProvider extends ChangeNotifier {
   String? selectedSubGroup;
   List<TimetableEntry> currentTimetable = [];
   List<TimetableEntry> notifiedTimetable = [];
+  List<ExamTimetableEntry> examTimetable = [];
 
   bool get hasParsedData => _parsed != null && _parsed!.entries.isNotEmpty;
 
@@ -133,6 +135,27 @@ class TimetableProvider extends ChangeNotifier {
         }
       }
     }
+  }
+
+  // ---------- Exam Timetable ----------
+  Future<void> loadExamTimetable() async {
+    examTimetable = await DatabaseHelper.instance.getExamEntries();
+    notifyListeners();
+  }
+
+  Future<void> addExamEntry(ExamTimetableEntry entry) async {
+    await DatabaseHelper.instance.insertExamEntry(entry);
+    await loadExamTimetable();
+  }
+
+  Future<void> updateExamEntry(ExamTimetableEntry entry) async {
+    await DatabaseHelper.instance.updateExamEntry(entry);
+    await loadExamTimetable();
+  }
+
+  Future<void> deleteExamEntry(int id) async {
+    await DatabaseHelper.instance.deleteExamEntry(id);
+    await loadExamTimetable();
   }
 
   /// Schedules reminders for the currently notified timetable profile.
