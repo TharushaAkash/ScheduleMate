@@ -48,12 +48,13 @@ Track GPA in real-time, import faculty timetables from HTML exports, and stay on
 * 📅 **Smart Timetable Import** — Import schedules directly from faculty HTML exports with automatic parsing.
 * 📝 **Exam Tracking** — Organize and keep track of your upcoming exam schedules effortlessly.
 * 📚 **CA Marks Extraction** — Upload multiple PDFs at once to automatically extract and track your Continuous Assessment marks.
-* 💬 **Collaborative Rooms** — Create and join study rooms, chat with peers, and share files seamlessly via Google Drive and Firebase.
-* ☁️ **Cloud Backup** — Seamlessly back up and restore your data using Google Drive integration.
+* 💬 **Collaborative Rooms** — Create and join study rooms, chat with peers, and share files seamlessly via Google Drive.
+* ☁️ **Automatic Cloud Sync** — Seamlessly back up and restore your data using Google Drive integration with automatic room synchronization.
+* 🏖️ **Holiday Integration** — Automatically detects and highlights special public holidays (Poya Days, Christmas, etc.) on your timetable.
 * 🔔 **Class Reminders** — Weekly notification reminders with customizable lead times for Android 12+.
 * 💾 **Offline First** — All data stored locally via SQLite — no internet connection required.
-* 🗂️ **Organized by Day/Week** — View your timetable in a clean, structured layout organized by day and time slot.
-* 🎨 **Material 3 Design** — Clean, modern UI built with Flutter's latest Material Design 3 guidelines.
+* 🗂️ **Organized by Day/Week** — View your timetable in a clean, structured layout organized by day and time slot with a sleek weekly calendar view.
+* 🎨 **Premium UI Design** — Stunning modern interface featuring **Glassmorphism**, smooth animations, and Material 3 design guidelines.
 * ⚙️ **Flexible Customization** — Adjust grade point scales and notification timings to fit your institution's system.
 
 ---

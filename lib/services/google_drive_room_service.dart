@@ -4,7 +4,9 @@ import 'package:flutter/foundation.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:googleapis/drive/v3.dart' as drive;
 
+import '../models/room_model.dart';
 import 'backup_service.dart';
+import 'database_helper.dart';
 
 class RoomFile {
   final String id;
@@ -111,6 +113,7 @@ class GoogleDriveRoomService {
     try {
       final account = await _googleSignIn.signInSilently();
       if (account == null) return null;
+      await syncRoomsFromCloud(); // Auto sync on silent sign in too
       return User(
         id: account.id,
         email: account.email,
@@ -127,6 +130,7 @@ class GoogleDriveRoomService {
     try {
       final account = await _googleSignIn.signIn();
       if (account == null) return null;
+      await syncRoomsFromCloud(); // Auto sync on explicit sign in
       return User(
         id: account.id,
         email: account.email,
@@ -136,6 +140,73 @@ class GoogleDriveRoomService {
     } catch (e) {
       debugPrint('GoogleDriveRoomService.signIn error: $e');
       return null;
+    }
+  }
+
+  Future<void> syncRoomsToCloud() async {
+    final api = await _getDriveApi();
+    if (api == null) return;
+    try {
+      final rooms = await DatabaseHelper.instance.getRooms();
+      final roomsData = rooms.map((r) => r.toMap()).toList();
+      final jsonStr = jsonEncode(roomsData);
+      
+      final query = "name = 'joined_rooms_sync.json' and 'appDataFolder' in parents and trashed = false";
+      final fileList = await api.files.list(q: query, spaces: 'appDataFolder');
+      
+      String? fileId;
+      if (fileList.files != null && fileList.files!.isNotEmpty) {
+        fileId = fileList.files!.first.id;
+      }
+      
+      final bytes = utf8.encode(jsonStr);
+      final media = drive.Media(Stream.value(bytes), bytes.length);
+      final driveFile = drive.File()
+        ..name = 'joined_rooms_sync.json'
+        ..parents = ['appDataFolder'];
+        
+      if (fileId != null) {
+        await api.files.update(drive.File(), fileId, uploadMedia: media);
+      } else {
+        await api.files.create(driveFile, uploadMedia: media);
+      }
+    } catch (e) {
+      debugPrint('GoogleDriveRoomService.syncRoomsToCloud error: $e');
+    }
+  }
+
+  Future<void> syncRoomsFromCloud() async {
+    final api = await _getDriveApi();
+    if (api == null) return;
+    try {
+      final query = "name = 'joined_rooms_sync.json' and 'appDataFolder' in parents and trashed = false";
+      final fileList = await api.files.list(q: query, spaces: 'appDataFolder');
+      
+      if (fileList.files != null && fileList.files!.isNotEmpty) {
+        final fileId = fileList.files!.first.id!;
+        final media = await api.files.get(fileId, downloadOptions: drive.DownloadOptions.fullMedia) as drive.Media;
+        
+        final List<int> bytes = [];
+        await for (final chunk in media.stream) {
+          bytes.addAll(chunk);
+        }
+        final jsonStr = utf8.decode(bytes);
+        final List<dynamic> jsonList = jsonDecode(jsonStr);
+        
+        final localRooms = await DatabaseHelper.instance.getRooms();
+        final localIds = localRooms.map((r) => r.roomId).toSet();
+        
+        for (var data in jsonList) {
+          final roomMap = Map<String, dynamic>.from(data as Map);
+          if (!localIds.contains(roomMap['roomId'] ?? roomMap['folderId'])) {
+             // Handle case where older model used 'folderId'
+             roomMap['folderId'] = roomMap['folderId'] ?? roomMap['roomId'];
+             await DatabaseHelper.instance.insertRoom(RoomModel.fromMap(roomMap));
+          }
+        }
+      }
+    } catch (e) {
+      debugPrint('GoogleDriveRoomService.syncRoomsFromCloud error: $e');
     }
   }
 
@@ -385,25 +456,61 @@ class GoogleDriveRoomService {
       return;
     }
     
+    DateTime? lastModified;
+    String? currentFileId;
+    List<RoomMessage> lastMessages = [];
+    
     while (true) {
       try {
-        final chatFile = await _getChatFile(api, roomId);
-        if (chatFile != null) {
-          final media = await api.files.get(chatFile.id!, downloadOptions: drive.DownloadOptions.fullMedia) as drive.Media;
-          final List<int> bytes = [];
-          await for (final chunk in media.stream) {
-            bytes.addAll(chunk);
+        if (currentFileId == null) {
+          final chatFile = await _getChatFile(api, roomId);
+          currentFileId = chatFile?.id;
+        }
+        
+        if (currentFileId != null) {
+          final meta = await api.files.get(currentFileId, $fields: 'id, modifiedTime') as drive.File;
+          
+          if (lastModified == null || meta.modifiedTime == null || meta.modifiedTime != lastModified) {
+            lastModified = meta.modifiedTime;
+            
+            final media = await api.files.get(currentFileId, downloadOptions: drive.DownloadOptions.fullMedia) as drive.Media;
+            final List<int> bytes = [];
+            await for (final chunk in media.stream) {
+              bytes.addAll(chunk);
+            }
+            final jsonStr = utf8.decode(bytes);
+            final List<dynamic> jsonList = jsonDecode(jsonStr);
+            lastMessages = jsonList.map((j) => RoomMessage.fromJson(j)).toList();
+            yield lastMessages;
           }
-          final jsonStr = utf8.decode(bytes);
-          final List<dynamic> jsonList = jsonDecode(jsonStr);
-          yield jsonList.map((j) => RoomMessage.fromJson(j)).toList();
         } else {
           yield [];
         }
       } catch (e) {
+        if (e.toString().contains('404')) {
+          currentFileId = null;
+          lastModified = null;
+          lastMessages = [];
+          yield lastMessages;
+        }
         debugPrint('GoogleDriveRoomService.messagesStream error: $e');
       }
-      await Future.delayed(const Duration(seconds: 5)); 
+      await Future.delayed(const Duration(seconds: 4)); 
+    }
+  }
+
+  Future<bool> clearChat(String roomId) async {
+    final api = await _getDriveApi();
+    if (api == null) return false;
+    try {
+      final chatFile = await _getChatFile(api, roomId);
+      if (chatFile != null && chatFile.id != null) {
+        await api.files.delete(chatFile.id!);
+      }
+      return true;
+    } catch (e) {
+      debugPrint('GoogleDriveRoomService.clearChat error: $e');
+      return false;
     }
   }
 

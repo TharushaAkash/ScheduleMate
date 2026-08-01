@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:ui';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -29,6 +30,7 @@ class _RoomDetailsScreenState extends State<RoomDetailsScreen> {
   
   final _chatCtrl = TextEditingController();
   final ScrollController _chatScrollCtrl = ScrollController();
+  Stream<List<RoomMessage>>? _chatStream;
 
   static const _bg = Color(0xFF13131A);
   static const _card = Color(0xFF1C1C26);
@@ -39,6 +41,9 @@ class _RoomDetailsScreenState extends State<RoomDetailsScreen> {
   void initState() {
     super.initState();
     _searchCtrl.addListener(() => setState(() => _searchQuery = _searchCtrl.text.toLowerCase()));
+    if (_tab == 3) {
+      _chatStream = _service.messagesStream(widget.room.roomId);
+    }
   }
 
   @override
@@ -463,7 +468,14 @@ class _RoomDetailsScreenState extends State<RoomDetailsScreen> {
   Widget _tabBtn(int i, String label) {
     final sel = _tab == i;
     return GestureDetector(
-      onTap: () => setState(() => _tab = i),
+      onTap: () {
+        setState(() {
+          if (i == 3 && _tab != 3) {
+            _chatStream = _service.messagesStream(widget.room.roomId);
+          }
+          _tab = i;
+        });
+      },
       child: Container(
         margin: const EdgeInsets.only(right: 10),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -777,9 +789,19 @@ class _RoomDetailsScreenState extends State<RoomDetailsScreen> {
   Widget _buildChat() {
     return Column(
       children: [
+        if (widget.room.isCreator)
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+            alignment: Alignment.centerRight,
+            child: TextButton.icon(
+              icon: const Icon(Icons.delete_sweep_rounded, color: Colors.redAccent, size: 18),
+              label: const Text('Clear Chat', style: TextStyle(color: Colors.redAccent)),
+              onPressed: _confirmClearChat,
+            ),
+          ),
         Expanded(
           child: StreamBuilder<List<RoomMessage>>(
-            stream: _service.messagesStream(widget.room.roomId),
+            stream: _chatStream,
             builder: (ctx, snap) {
               if (snap.connectionState == ConnectionState.waiting) {
                 return const Center(child: CircularProgressIndicator(color: _accent));
@@ -930,14 +952,86 @@ class _RoomDetailsScreenState extends State<RoomDetailsScreen> {
       ],
     );
   }
+
+  Future<void> _confirmClearChat() async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => Dialog(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(28),
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+            child: Container(
+              decoration: BoxDecoration(
+                color: _card.withOpacity(0.85),
+                borderRadius: BorderRadius.circular(28),
+                border: Border.all(color: Colors.white.withOpacity(0.1)),
+                boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.3), blurRadius: 30)],
+              ),
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: Colors.redAccent.withOpacity(0.2),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: const Icon(Icons.cleaning_services_rounded, color: Colors.redAccent),
+                      ),
+                      const SizedBox(width: 16),
+                      const Text('Clear Chat', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 20)),
+                    ],
+                  ),
+                  const SizedBox(height: 20),
+                  Text(
+                    'Are you sure you want to delete all messages? This action cannot be undone and will affect everyone in the room.',
+                    style: TextStyle(color: Colors.white.withOpacity(0.7), height: 1.5, fontSize: 15),
+                  ),
+                  const SizedBox(height: 32),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      TextButton(
+                        onPressed: () => Navigator.pop(ctx, false),
+                        child: const Text('Cancel', style: TextStyle(color: Colors.white70, fontWeight: FontWeight.bold)),
+                      ),
+                      const SizedBox(width: 12),
+                      ElevatedButton(
+                        onPressed: () => Navigator.pop(ctx, true),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.redAccent,
+                          foregroundColor: Colors.white,
+                          elevation: 0,
+                          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
+                        child: const Text('Clear', style: TextStyle(fontWeight: FontWeight.bold)),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    if (ok == true) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Clearing chat...')));
+      await _service.clearChat(widget.room.roomId);
+    }
+  }
 }
 
 class _BreadCrumb {
   final String? folderId;
   final String name;
   const _BreadCrumb(this.folderId, this.name);
-}
-
-extension _RoomFileAdmin on RoomFile {
-  bool isCreatorOrAdmin(bool roomIsCreator) => roomIsCreator;
 }

@@ -1,8 +1,11 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:intl/intl.dart';
 
 import '../providers/timetable_provider.dart';
 import '../models/timetable_entry.dart';
+import '../services/holiday_service.dart';
 
 class TimetableViewScreen extends StatefulWidget {
   const TimetableViewScreen({super.key});
@@ -13,7 +16,8 @@ class TimetableViewScreen extends StatefulWidget {
 
 class _TimetableViewScreenState extends State<TimetableViewScreen>
     with SingleTickerProviderStateMixin {
-  String? selectedDay;
+  late DateTime _selectedDate;
+  late DateTime _currentWeekStart;
   late AnimationController _animController;
   late Animation<double> _fadeAnim;
   late ScrollController _dayScrollController;
@@ -24,6 +28,8 @@ class _TimetableViewScreenState extends State<TimetableViewScreen>
 
   final List<String> _dayShort = const ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
+  Map<String, String> _holidays = {};
+
   @override
   void initState() {
     super.initState();
@@ -33,16 +39,17 @@ class _TimetableViewScreenState extends State<TimetableViewScreen>
         CurvedAnimation(parent: _animController, curve: Curves.easeOut);
     _animController.forward();
     
-    final weekday = DateTime.now().weekday; // 1 = Monday, 7 = Sunday
-    selectedDay = _availableDays[weekday - 1];
+    final now = DateTime.now();
+    _selectedDate = DateTime(now.year, now.month, now.day);
+    _currentWeekStart = _selectedDate.subtract(Duration(days: _selectedDate.weekday - 1));
     
-    // Each day item is 54 width + 12 margin = 66 width
-    double initialScroll = (weekday - 1) * 66.0;
-    // Adjust slightly to center it better if it's towards the end
-    if (weekday > 3) initialScroll -= 66.0;
+    double initialScroll = (_selectedDate.weekday - 1) * 66.0;
+    if (_selectedDate.weekday > 3) initialScroll -= 66.0;
     if (initialScroll < 0) initialScroll = 0;
     
     _dayScrollController = ScrollController(initialScrollOffset: initialScroll);
+    
+    _loadHolidays();
     
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<TimetableProvider>().loadDefaultTimetable().then((_) {
@@ -61,12 +68,56 @@ class _TimetableViewScreenState extends State<TimetableViewScreen>
     super.dispose();
   }
 
-  void _selectDay(String day) {
-    if (day == selectedDay) return;
+  void _selectDate(DateTime date) {
+    if (date.year == _selectedDate.year &&
+        date.month == _selectedDate.month &&
+        date.day == _selectedDate.day) return;
     _animController.reverse().then((_) {
-      setState(() => selectedDay = day);
+      setState(() => _selectedDate = date);
       _animController.forward();
     });
+  }
+
+  void _nextWeek() {
+    _animController.reverse().then((_) {
+      setState(() {
+        _currentWeekStart = _currentWeekStart.add(const Duration(days: 7));
+        _selectedDate = _selectedDate.add(const Duration(days: 7));
+      });
+      _animController.forward();
+    });
+  }
+
+  void _prevWeek() {
+    _animController.reverse().then((_) {
+      setState(() {
+        _currentWeekStart = _currentWeekStart.subtract(const Duration(days: 7));
+        _selectedDate = _selectedDate.subtract(const Duration(days: 7));
+      });
+      _animController.forward();
+    });
+  }
+
+  Future<void> _loadHolidays() async {
+    final service = HolidayService();
+    final cached = await service.loadCached();
+    if (mounted && cached.isNotEmpty) {
+      setState(() {
+        _holidays = cached;
+      });
+    }
+    
+    final latest = await service.fetchLatest();
+    if (mounted && latest.isNotEmpty) {
+      setState(() {
+        _holidays = latest;
+      });
+    }
+  }
+
+  String? _getHoliday(DateTime date) {
+    final key = DateFormat('yyyy-MM-dd').format(date);
+    return _holidays[key];
   }
 
   String _extractClassType(String name, String lec) {
@@ -145,7 +196,10 @@ class _TimetableViewScreenState extends State<TimetableViewScreen>
     final isDark = theme.brightness == Brightness.dark;
     final primary = theme.colorScheme.primary;
 
-    final dayClasses = (grouped[selectedDay] ?? [])
+    final dayName = _availableDays[_selectedDate.weekday - 1];
+    final holiday = _getHoliday(_selectedDate);
+
+    final dayClasses = (grouped[dayName] ?? [])
         .where((m) => m.moduleName.isNotEmpty || m.moduleCode.isNotEmpty)
         .toList();
 
@@ -163,7 +217,6 @@ class _TimetableViewScreenState extends State<TimetableViewScreen>
                   color: isDark ? Colors.white : Colors.black87),
               onPressed: () => Navigator.pop(context),
             ),
-
             flexibleSpace: FlexibleSpaceBar(
               titlePadding: const EdgeInsets.only(left: 60, bottom: 16),
               title: Text(
@@ -187,18 +240,19 @@ class _TimetableViewScreenState extends State<TimetableViewScreen>
               ),
             ),
           ),
-          // Day Selector pinned below the app bar
           SliverPersistentHeader(
             pinned: true,
             delegate: _DayHeaderDelegate(
-              availableDays: _availableDays,
-              dayShort: _dayShort,
-              selectedDay: selectedDay,
+              currentWeekStart: _currentWeekStart,
+              selectedDate: _selectedDate,
               grouped: grouped,
               isDark: isDark,
               primary: primary,
               scrollController: _dayScrollController,
-              onDaySelected: _selectDay,
+              onDateSelected: _selectDate,
+              onPrevWeek: _prevWeek,
+              onNextWeek: _nextWeek,
+              dayShort: _dayShort,
             ),
           ),
         ],
@@ -223,7 +277,7 @@ class _TimetableViewScreenState extends State<TimetableViewScreen>
               )
             : FadeTransition(
                 opacity: _fadeAnim,
-                child: dayClasses.isEmpty
+                child: holiday != null
                     ? Center(
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
@@ -231,15 +285,15 @@ class _TimetableViewScreenState extends State<TimetableViewScreen>
                             Container(
                               padding: const EdgeInsets.all(24),
                               decoration: BoxDecoration(
-                                color: primary.withOpacity(0.1),
+                                color: Colors.redAccent.withOpacity(0.1),
                                 shape: BoxShape.circle,
                               ),
-                              child: Icon(Icons.wb_sunny_rounded,
-                                  size: 48, color: primary.withOpacity(0.6)),
+                              child: Icon(Icons.celebration_rounded,
+                                  size: 48, color: Colors.redAccent.withOpacity(0.8)),
                             ),
                             const SizedBox(height: 16),
                             Text(
-                              'Free Day! 🎉',
+                              'Holiday! 🎉',
                               style: TextStyle(
                                 fontSize: 22,
                                 fontWeight: FontWeight.bold,
@@ -248,44 +302,78 @@ class _TimetableViewScreenState extends State<TimetableViewScreen>
                             ),
                             const SizedBox(height: 8),
                             Text(
-                              'No classes scheduled today',
+                              holiday,
                               style: TextStyle(
-                                fontSize: 14,
-                                color: isDark ? Colors.white54 : Colors.black45,
+                                fontSize: 16,
+                                color: isDark ? Colors.white70 : Colors.black54,
                               ),
                             ),
                           ],
                         ),
                       )
-                    : ListView.builder(
-                        padding: const EdgeInsets.fromLTRB(16, 16, 16, 80),
-                        itemCount: dayClasses.length,
-                        itemBuilder: (context, i) {
-                          final module = dayClasses[i];
-                          final type = _extractClassType(
-                              module.moduleName, module.lecturer);
-                          final typeColor = _getClassTypeColor(type);
-                          final typeIcon = _getClassTypeIcon(type);
-                          final cName = _cleanModuleName(
-                              module.moduleName.isEmpty
-                                  ? module.moduleCode
-                                  : module.moduleName);
-                          final cLecturer =
-                              _cleanLecturer(module.lecturer);
-                          return _ClassCard(
-                            module: module,
-                            type: type,
-                            typeColor: typeColor,
-                            typeIcon: typeIcon,
-                            moduleName: cName,
-                            lecturer: cLecturer,
-                            isDark: isDark,
-                            index: i,
-                            onEditTime: () =>
-                                _editTime(context, module, provider),
-                          );
-                        },
-                      ),
+                    : dayClasses.isEmpty
+                        ? Center(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.all(24),
+                                  decoration: BoxDecoration(
+                                    color: primary.withOpacity(0.1),
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: Icon(Icons.wb_sunny_rounded,
+                                      size: 48, color: primary.withOpacity(0.6)),
+                                ),
+                                const SizedBox(height: 16),
+                                Text(
+                                  'Free Day! 🎉',
+                                  style: TextStyle(
+                                    fontSize: 22,
+                                    fontWeight: FontWeight.bold,
+                                    color: isDark ? Colors.white : Colors.black87,
+                                  ),
+                                ),
+                                const SizedBox(height: 8),
+                                Text(
+                                  'No classes scheduled today',
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    color: isDark ? Colors.white54 : Colors.black45,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          )
+                        : ListView.builder(
+                            padding: const EdgeInsets.fromLTRB(16, 16, 16, 80),
+                            itemCount: dayClasses.length,
+                            itemBuilder: (context, i) {
+                              final module = dayClasses[i];
+                              final type = _extractClassType(
+                                  module.moduleName, module.lecturer);
+                              final typeColor = _getClassTypeColor(type);
+                              final typeIcon = _getClassTypeIcon(type);
+                              final cName = _cleanModuleName(
+                                  module.moduleName.isEmpty
+                                      ? module.moduleCode
+                                      : module.moduleName);
+                              final cLecturer =
+                                  _cleanLecturer(module.lecturer);
+                              return _ClassCard(
+                                module: module,
+                                type: type,
+                                typeColor: typeColor,
+                                typeIcon: typeIcon,
+                                moduleName: cName,
+                                lecturer: cLecturer,
+                                isDark: isDark,
+                                index: i,
+                                onEditTime: () =>
+                                    _editTime(context, module, provider),
+                              );
+                            },
+                          ),
               ),
       ),
     );
@@ -338,122 +426,172 @@ class _TimetableViewScreenState extends State<TimetableViewScreen>
 }
 
 class _DayHeaderDelegate extends SliverPersistentHeaderDelegate {
-  final List<String> availableDays;
-  final List<String> dayShort;
-  final String? selectedDay;
+  final DateTime currentWeekStart;
+  final DateTime selectedDate;
   final Map<String, List<TimetableEntry>> grouped;
   final bool isDark;
   final Color primary;
   final ScrollController scrollController;
-  final ValueChanged<String> onDaySelected;
+  final ValueChanged<DateTime> onDateSelected;
+  final VoidCallback onPrevWeek;
+  final VoidCallback onNextWeek;
+  final List<String> dayShort;
 
   _DayHeaderDelegate({
-    required this.availableDays,
-    required this.dayShort,
-    required this.selectedDay,
+    required this.currentWeekStart,
+    required this.selectedDate,
     required this.grouped,
     required this.isDark,
     required this.primary,
     required this.scrollController,
-    required this.onDaySelected,
+    required this.onDateSelected,
+    required this.onPrevWeek,
+    required this.onNextWeek,
+    required this.dayShort,
   });
 
   @override
-  double get minExtent => 80;
+  double get minExtent => 140;
   @override
-  double get maxExtent => 80;
+  double get maxExtent => 140;
 
   @override
   bool shouldRebuild(covariant _DayHeaderDelegate oldDelegate) =>
-      oldDelegate.selectedDay != selectedDay ||
+      oldDelegate.selectedDate != selectedDate ||
+      oldDelegate.currentWeekStart != currentWeekStart ||
       oldDelegate.isDark != isDark ||
       oldDelegate.grouped != grouped;
 
   @override
   Widget build(
       BuildContext context, double shrinkOffset, bool overlapsContent) {
-    return Container(
-      height: 80, // Explicitly match min/maxExtent to fix geometry error
-      color: isDark ? const Color(0xFF1E1E2E) : const Color(0xFFF8F7FF),
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      alignment: Alignment.center,
-      child: SingleChildScrollView(
-        controller: scrollController,
-        scrollDirection: Axis.horizontal,
-        physics: const BouncingScrollPhysics(),
-        child: Row(
-          children: List.generate(availableDays.length, (i) {
-            final day = availableDays[i];
-            final short = dayShort[i];
-            final isSelected = day == selectedDay;
-            final hasClasses = (grouped[day] ?? [])
-                .where((m) => m.moduleName.isNotEmpty || m.moduleCode.isNotEmpty)
-                .isNotEmpty;
-
-            return Padding(
-              padding: EdgeInsets.only(right: i == availableDays.length - 1 ? 0 : 12),
-              child: GestureDetector(
-            onTap: () => onDaySelected(day),
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 200),
-              width: 54,
-              height: 54,
-              decoration: BoxDecoration(
-                color: isSelected
-                    ? primary
-                    : (isDark ? const Color(0xFF252535) : Colors.white),
-                borderRadius: BorderRadius.circular(16),
-                boxShadow: isSelected
-                    ? [
-                        BoxShadow(
-                          color: primary.withOpacity(0.4),
-                          blurRadius: 12,
-                          offset: const Offset(0, 4),
-                        )
-                      ]
-                    : [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(isDark ? 0.3 : 0.05),
-                          blurRadius: 8,
-                          offset: const Offset(0, 2),
-                        )
-                      ],
-              ),
-              child: Stack(
-                alignment: Alignment.center,
-                children: [
-                  Text(
-                    short,
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 13,
-                      color: isSelected
-                          ? Colors.white
-                          : (isDark ? Colors.white70 : Colors.black54),
-                    ),
+    return ClipRRect(
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+        child: Container(
+          height: 140,
+          color: (isDark ? const Color(0xFF1E1E2E) : const Color(0xFFF8F7FF)).withOpacity(0.85),
+          child: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                IconButton(
+                  icon: Icon(Icons.chevron_left_rounded, color: isDark ? Colors.white70 : Colors.black54),
+                  onPressed: onPrevWeek,
+                ),
+                Text(
+                  DateFormat('MMMM yyyy').format(currentWeekStart),
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: isDark ? Colors.white : Colors.black87,
                   ),
-                  if (hasClasses && !isSelected)
-                    Positioned(
-                      bottom: 8,
-                      child: Container(
-                        width: 5,
-                        height: 5,
+                ),
+                IconButton(
+                  icon: Icon(Icons.chevron_right_rounded, color: isDark ? Colors.white70 : Colors.black54),
+                  onPressed: onNextWeek,
+                ),
+              ],
+            ),
+          ),
+          Expanded(
+            child: SingleChildScrollView(
+              controller: scrollController,
+              scrollDirection: Axis.horizontal,
+              physics: const BouncingScrollPhysics(),
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Row(
+                children: List.generate(7, (i) {
+                  final date = currentWeekStart.add(Duration(days: i));
+                  final isSelected = date.year == selectedDate.year &&
+                      date.month == selectedDate.month &&
+                      date.day == selectedDate.day;
+
+                  final dayName = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'][date.weekday - 1];
+                  final hasClasses = (grouped[dayName] ?? [])
+                      .where((m) => m.moduleName.isNotEmpty || m.moduleCode.isNotEmpty)
+                      .isNotEmpty;
+
+                  return Padding(
+                    padding: EdgeInsets.only(right: i == 6 ? 0 : 12),
+                    child: GestureDetector(
+                      onTap: () => onDateSelected(date),
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 200),
+                        width: 54,
+                        height: 70,
                         decoration: BoxDecoration(
-                          color: primary,
-                          shape: BoxShape.circle,
+                          color: isSelected
+                              ? primary
+                              : (isDark ? const Color(0xFF252535) : Colors.white),
+                          borderRadius: BorderRadius.circular(16),
+                          boxShadow: isSelected
+                              ? [
+                                  BoxShadow(
+                                    color: primary.withOpacity(0.4),
+                                    blurRadius: 12,
+                                    offset: const Offset(0, 4),
+                                  )
+                                ]
+                              : [
+                                  BoxShadow(
+                                    color: Colors.black.withOpacity(isDark ? 0.3 : 0.05),
+                                    blurRadius: 8,
+                                    offset: const Offset(0, 2),
+                                  )
+                                ],
+                        ),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text(
+                              dayShort[date.weekday - 1],
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 12,
+                                color: isSelected
+                                    ? Colors.white.withOpacity(0.9)
+                                    : (isDark ? Colors.white54 : Colors.black54),
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              '${date.day}',
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 16,
+                                color: isSelected
+                                    ? Colors.white
+                                    : (isDark ? Colors.white : Colors.black87),
+                              ),
+                            ),
+                            if (hasClasses && !isSelected)
+                              Container(
+                                margin: const EdgeInsets.only(top: 4),
+                                width: 5,
+                                height: 5,
+                                decoration: BoxDecoration(
+                                  color: primary,
+                                  shape: BoxShape.circle,
+                                ),
+                              ),
+                          ],
                         ),
                       ),
                     ),
-                ],
+                  );
+                }),
               ),
             ),
           ),
-        );
-      }),
-    ),
-  ),
-);
-}
+          const SizedBox(height: 8),
+        ],
+      ),
+    )));
+  }
 }
 
 class _ClassCard extends StatelessWidget {
@@ -484,11 +622,10 @@ class _ClassCard extends StatelessWidget {
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF252535) : Colors.white,
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(isDark ? 0.3 : 0.07),
+            color: Colors.black.withOpacity(isDark ? 0.3 : 0.05),
             blurRadius: 16,
             offset: const Offset(0, 4),
           ),
@@ -496,11 +633,18 @@ class _ClassCard extends StatelessWidget {
       ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(20),
-        child: IntrinsicHeight(
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
+          child: Container(
+            decoration: BoxDecoration(
+              color: (isDark ? const Color(0xFF252535) : Colors.white).withOpacity(0.7),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: Colors.white.withOpacity(isDark ? 0.05 : 0.4), width: 1.5),
+            ),
+            child: IntrinsicHeight(
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // Color accent bar
               Container(
                 width: 6,
                 color: typeColor,
@@ -511,11 +655,9 @@ class _ClassCard extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Time + edit
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          // Time chip
                           GestureDetector(
                             onTap: onEditTime,
                             child: Container(
@@ -546,7 +688,6 @@ class _ClassCard extends StatelessWidget {
                               ),
                             ),
                           ),
-                          // Type badge
                           Container(
                             padding: const EdgeInsets.symmetric(
                                 horizontal: 10, vertical: 5),
@@ -573,7 +714,6 @@ class _ClassCard extends StatelessWidget {
                         ],
                       ),
                       const SizedBox(height: 12),
-                      // Module name
                       Text(
                         moduleName,
                         style: TextStyle(
@@ -595,7 +735,6 @@ class _ClassCard extends StatelessWidget {
                         ),
                       ],
                       const SizedBox(height: 12),
-                      // Venue + Lecturer
                       Wrap(
                         spacing: 8,
                         runSpacing: 8,
@@ -622,7 +761,7 @@ class _ClassCard extends StatelessWidget {
             ],
           ),
         ),
-      ),
+      ))),
     );
   }
 }

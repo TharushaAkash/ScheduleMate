@@ -61,39 +61,78 @@ class _RoomsScreenState extends State<RoomsScreen> {
     final nameCtrl = TextEditingController();
     final roomName = await showDialog<String>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: _card,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text('Create New Room',
-            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-        content: TextField(
-          controller: nameCtrl,
-          style: const TextStyle(color: Colors.white),
-          autofocus: true,
-          decoration: InputDecoration(
-            labelText: 'Room Name',
-            labelStyle: TextStyle(color: Colors.grey.shade400),
-            enabledBorder: OutlineInputBorder(
-                borderSide: BorderSide(color: Colors.grey.shade800),
-                borderRadius: BorderRadius.circular(12)),
-            focusedBorder: OutlineInputBorder(
-                borderSide: const BorderSide(color: _accent),
-                borderRadius: BorderRadius.circular(12)),
+      builder: (ctx) => Dialog(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(28),
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+            child: Container(
+              decoration: BoxDecoration(
+                color: _card.withOpacity(0.85),
+                borderRadius: BorderRadius.circular(28),
+                border: Border.all(color: Colors.white.withOpacity(0.1)),
+                boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.3), blurRadius: 30)],
+              ),
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(color: _accent.withOpacity(0.2), borderRadius: BorderRadius.circular(12)),
+                        child: const Icon(Icons.add_circle_outline_rounded, color: _accent),
+                      ),
+                      const SizedBox(width: 16),
+                      const Text('Create New Room', style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
+                    ],
+                  ),
+                  const SizedBox(height: 24),
+                  TextField(
+                    controller: nameCtrl,
+                    style: const TextStyle(color: Colors.white, fontSize: 16),
+                    autofocus: true,
+                    decoration: InputDecoration(
+                      labelText: 'Room Name',
+                      labelStyle: TextStyle(color: Colors.white.withOpacity(0.5)),
+                      filled: true,
+                      fillColor: Colors.white.withOpacity(0.05),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
+                      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: const BorderSide(color: _accent, width: 2)),
+                      prefixIcon: const Icon(Icons.class_rounded, color: _sub),
+                    ),
+                  ),
+                  const SizedBox(height: 32),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      TextButton(
+                        onPressed: () => Navigator.pop(ctx),
+                        child: const Text('Cancel', style: TextStyle(color: _sub, fontWeight: FontWeight.bold)),
+                      ),
+                      const SizedBox(width: 12),
+                      ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: _accent,
+                          foregroundColor: Colors.white,
+                          elevation: 0,
+                          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
+                        onPressed: () => Navigator.pop(ctx, nameCtrl.text.trim()),
+                        child: const Text('Create Room', style: TextStyle(fontWeight: FontWeight.bold)),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
           ),
         ),
-        actions: [
-          TextButton(
-              onPressed: () => Navigator.pop(ctx),
-              child: const Text('Cancel', style: TextStyle(color: _sub))),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-                backgroundColor: _accent,
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10))),
-            onPressed: () => Navigator.pop(ctx, nameCtrl.text.trim()),
-            child: const Text('Create', style: TextStyle(color: Colors.white)),
-          ),
-        ],
       ),
     );
 
@@ -109,6 +148,7 @@ class _RoomsScreenState extends State<RoomsScreen> {
       final room =
           RoomModel(roomId: roomId, roomName: roomName, isCreator: true, joinCode: joinCode);
       await DatabaseHelper.instance.insertRoom(room);
+      await _service.syncRoomsToCloud();
       await _loadRooms();
 
       if (mounted) {
@@ -126,61 +166,78 @@ class _RoomsScreenState extends State<RoomsScreen> {
   void _showRoomCreatedDialog(String roomId, String roomName, String joinCode) {
     showDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: _card,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(8),
+      builder: (ctx) => Dialog(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(28),
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+            child: Container(
               decoration: BoxDecoration(
-                  color: Colors.green.withOpacity(0.2), shape: BoxShape.circle),
-              child: const Icon(Icons.check_rounded, color: Colors.green),
-            ),
-            const SizedBox(width: 12),
-            const Text('Room Created!',
-                style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-          ],
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text('Share this 6-digit code with your students:',
-                style: TextStyle(color: _sub, fontSize: 13)),
-            const SizedBox(height: 12),
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                  color: _accent.withOpacity(0.15),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: _accent.withOpacity(0.4))),
-              child: Center(
-                child: Text(
-                  joinCode,
-                  style: const TextStyle(
-                      fontSize: 28,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
-                      letterSpacing: 8),
-                ),
+                color: _card.withOpacity(0.85),
+                borderRadius: BorderRadius.circular(28),
+                border: Border.all(color: Colors.white.withOpacity(0.1)),
+              ),
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(color: Colors.green.withOpacity(0.2), borderRadius: BorderRadius.circular(12)),
+                        child: const Icon(Icons.check_circle_rounded, color: Colors.green),
+                      ),
+                      const SizedBox(width: 16),
+                      const Text('Room Created!', style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
+                    ],
+                  ),
+                  const SizedBox(height: 20),
+                  const Text('Share this code with your students:', style: TextStyle(color: _sub, fontSize: 14)),
+                  const SizedBox(height: 16),
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(vertical: 24),
+                    decoration: BoxDecoration(
+                      color: _accent.withOpacity(0.15),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: _accent.withOpacity(0.3)),
+                    ),
+                    child: Center(
+                      child: Text(
+                        joinCode,
+                        style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w900, color: Colors.white, letterSpacing: 8),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton.icon(
+                      onPressed: () {
+                        Clipboard.setData(ClipboardData(text: joinCode));
+                        ScaffoldMessenger.of(ctx).showSnackBar(const SnackBar(content: Text('Code copied!')));
+                        Navigator.pop(ctx);
+                      },
+                      icon: const Icon(Icons.copy_rounded, size: 20),
+                      label: const Text('Copy & Close', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: _accent,
+                        foregroundColor: Colors.white,
+                        elevation: 0,
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
-          ],
-        ),
-        actions: [
-          TextButton.icon(
-            onPressed: () {
-              Clipboard.setData(ClipboardData(text: joinCode));
-              ScaffoldMessenger.of(ctx)
-                  .showSnackBar(const SnackBar(content: Text('Code copied!')));
-              Navigator.pop(ctx);
-            },
-            icon: const Icon(Icons.copy_rounded, color: _accent, size: 18),
-            label: const Text('Copy & Close', style: TextStyle(color: _accent)),
           ),
-        ],
+        ),
       ),
     );
   }
@@ -191,40 +248,78 @@ class _RoomsScreenState extends State<RoomsScreen> {
     final codeCtrl = TextEditingController();
     final joinCode = await showDialog<String>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: _card,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text('Join Room',
-            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-        content: TextField(
-          controller: codeCtrl,
-          style: const TextStyle(
-              color: Colors.white, fontSize: 16),
-          autofocus: true,
-          decoration: InputDecoration(
-            labelText: 'Room Code (Drive Folder ID)',
-            labelStyle: TextStyle(color: Colors.grey.shade400, fontSize: 14),
-            enabledBorder: OutlineInputBorder(
-                borderSide: BorderSide(color: Colors.grey.shade800),
-                borderRadius: BorderRadius.circular(12)),
-            focusedBorder: OutlineInputBorder(
-                borderSide: const BorderSide(color: _accent),
-                borderRadius: BorderRadius.circular(12)),
+      builder: (ctx) => Dialog(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(28),
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+            child: Container(
+              decoration: BoxDecoration(
+                color: _card.withOpacity(0.85),
+                borderRadius: BorderRadius.circular(28),
+                border: Border.all(color: Colors.white.withOpacity(0.1)),
+                boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.3), blurRadius: 30)],
+              ),
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(color: const Color(0xFF00D4AA).withOpacity(0.2), borderRadius: BorderRadius.circular(12)),
+                        child: const Icon(Icons.sensor_door_rounded, color: Color(0xFF00D4AA)),
+                      ),
+                      const SizedBox(width: 16),
+                      const Text('Join Room', style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
+                    ],
+                  ),
+                  const SizedBox(height: 24),
+                  TextField(
+                    controller: codeCtrl,
+                    style: const TextStyle(color: Colors.white, fontSize: 16),
+                    autofocus: true,
+                    decoration: InputDecoration(
+                      labelText: 'Room Code (Folder ID)',
+                      labelStyle: TextStyle(color: Colors.white.withOpacity(0.5)),
+                      filled: true,
+                      fillColor: Colors.white.withOpacity(0.05),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
+                      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: const BorderSide(color: Color(0xFF00D4AA), width: 2)),
+                      prefixIcon: const Icon(Icons.vpn_key_rounded, color: _sub),
+                    ),
+                  ),
+                  const SizedBox(height: 32),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      TextButton(
+                        onPressed: () => Navigator.pop(ctx),
+                        child: const Text('Cancel', style: TextStyle(color: _sub, fontWeight: FontWeight.bold)),
+                      ),
+                      const SizedBox(width: 12),
+                      ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF00D4AA),
+                          foregroundColor: Colors.white,
+                          elevation: 0,
+                          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
+                        onPressed: () => Navigator.pop(ctx, codeCtrl.text.trim()),
+                        child: const Text('Join Room', style: TextStyle(fontWeight: FontWeight.bold)),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
           ),
         ),
-        actions: [
-          TextButton(
-              onPressed: () => Navigator.pop(ctx),
-              child: const Text('Cancel', style: TextStyle(color: _sub))),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-                backgroundColor: _accent,
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10))),
-            onPressed: () => Navigator.pop(ctx, codeCtrl.text.trim()),
-            child: const Text('Join', style: TextStyle(color: Colors.white)),
-          ),
-        ],
       ),
     );
 
@@ -246,6 +341,7 @@ class _RoomsScreenState extends State<RoomsScreen> {
           roomName: result['roomName']!,
           isCreator: false);
       await DatabaseHelper.instance.insertRoom(room);
+      await _service.syncRoomsToCloud();
       await _loadRooms();
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -449,7 +545,8 @@ class _RoomsScreenState extends State<RoomsScreen> {
   }
 
   Widget _buildSignInPrompt() {
-    return Center(
+    return SingleChildScrollView(
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
@@ -469,7 +566,7 @@ class _RoomsScreenState extends State<RoomsScreen> {
             ),
             child: const Icon(Icons.lock_person_rounded, size: 64, color: Colors.white),
           ),
-          const SizedBox(height: 32),
+          const SizedBox(height: 24),
           const Text(
             'Authentication Required',
             style: TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.w800, letterSpacing: -0.5),
@@ -480,7 +577,7 @@ class _RoomsScreenState extends State<RoomsScreen> {
             textAlign: TextAlign.center,
             style: TextStyle(color: Colors.white.withOpacity(0.6), fontSize: 15, height: 1.5),
           ),
-          const SizedBox(height: 40),
+          const SizedBox(height: 32),
           Container(
             decoration: BoxDecoration(
               boxShadow: [
@@ -498,6 +595,47 @@ class _RoomsScreenState extends State<RoomsScreen> {
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
                 padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 18),
               ),
+            ),
+          ),
+          const SizedBox(height: 48),
+          
+          // Information Card
+          Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: _card,
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: _accent.withOpacity(0.3)),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    const Icon(Icons.info_outline_rounded, color: _accent, size: 20),
+                    const SizedBox(width: 10),
+                    const Text('Why Google Drive?', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                const Text(
+                  'This app uses your Google Drive to securely store and share room files. Your files are completely private and only shared with people in your room.',
+                  style: TextStyle(color: _sub, fontSize: 13, height: 1.5),
+                ),
+                const SizedBox(height: 20),
+                Row(
+                  children: [
+                    const Icon(Icons.security_rounded, color: Colors.green, size: 20),
+                    const SizedBox(width: 10),
+                    const Text('Verification in Progress', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                const Text(
+                  'The app is currently undergoing Google\'s verification process. When signing in, you might see a "Google hasn\'t verified this app" warning. You can safely bypass this by clicking "Advanced" -> "Go to ScheduleMate (unsafe)".',
+                  style: TextStyle(color: _sub, fontSize: 13, height: 1.5),
+                ),
+              ],
             ),
           ),
         ],
@@ -708,50 +846,73 @@ class _RoomsScreenState extends State<RoomsScreen> {
   Future<void> _confirmRemoveRoom(RoomModel room) async {
     final confirm = await showDialog<bool>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: _card,
-        shape: RoundedRectangleBorder(
+      builder: (ctx) => Dialog(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        child: ClipRRect(
           borderRadius: BorderRadius.circular(28),
-          side: BorderSide(color: Colors.white.withOpacity(0.1)),
-        ),
-        title: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(8),
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+            child: Container(
               decoration: BoxDecoration(
-                color: Colors.redAccent.withOpacity(0.2),
-                shape: BoxShape.circle,
+                color: _card.withOpacity(0.85),
+                borderRadius: BorderRadius.circular(28),
+                border: Border.all(color: Colors.white.withOpacity(0.1)),
+                boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.3), blurRadius: 30)],
               ),
-              child: Icon(room.isCreator ? Icons.delete_forever_rounded : Icons.exit_to_app_rounded, color: Colors.redAccent),
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: Colors.redAccent.withOpacity(0.2),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Icon(room.isCreator ? Icons.delete_forever_rounded : Icons.exit_to_app_rounded, color: Colors.redAccent),
+                      ),
+                      const SizedBox(width: 16),
+                      Text(room.isCreator ? 'Delete Room' : 'Leave Room', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 20)),
+                    ],
+                  ),
+                  const SizedBox(height: 20),
+                  Text(
+                    room.isCreator
+                        ? 'Are you sure you want to delete "${room.roomName}"?\nThis will permanently remove the room and all its files for everyone.'
+                        : 'Are you sure you want to leave "${room.roomName}"?',
+                    style: TextStyle(color: Colors.white.withOpacity(0.7), height: 1.5, fontSize: 15),
+                  ),
+                  const SizedBox(height: 32),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      TextButton(
+                        onPressed: () => Navigator.pop(ctx, false),
+                        child: const Text('Cancel', style: TextStyle(color: Colors.white70, fontWeight: FontWeight.bold)),
+                      ),
+                      const SizedBox(width: 12),
+                      ElevatedButton(
+                        onPressed: () => Navigator.pop(ctx, true),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.redAccent,
+                          foregroundColor: Colors.white,
+                          elevation: 0,
+                          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
+                        child: Text(room.isCreator ? 'Delete' : 'Leave', style: const TextStyle(fontWeight: FontWeight.bold)),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
             ),
-            const SizedBox(width: 16),
-            Text(room.isCreator ? 'Delete Room' : 'Leave Room', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 20)),
-          ],
-        ),
-        content: Text(
-          room.isCreator
-              ? 'Are you sure you want to delete "${room.roomName}"?\nThis will permanently remove the room and all its files for everyone.'
-              : 'Are you sure you want to leave "${room.roomName}"?',
-          style: TextStyle(color: Colors.white.withOpacity(0.7), height: 1.5, fontSize: 15),
-        ),
-        actionsPadding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Cancel', style: TextStyle(color: Colors.white70, fontWeight: FontWeight.bold)),
           ),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.redAccent,
-              foregroundColor: Colors.white,
-              elevation: 0,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-            ),
-            child: Text(room.isCreator ? 'Delete' : 'Leave', style: const TextStyle(fontWeight: FontWeight.bold)),
-          ),
-        ],
+        ),
       ),
     );
 
@@ -762,6 +923,7 @@ class _RoomsScreenState extends State<RoomsScreen> {
         await _service.leaveRoom(room.roomId);
       }
       await DatabaseHelper.instance.deleteRoom(room.roomId);
+      await _service.syncRoomsToCloud();
       _loadRooms();
     }
   }

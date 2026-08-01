@@ -428,21 +428,7 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
                                         width: double.infinity,
                                         height: 50,
                                         child: ElevatedButton.icon(
-                                          onPressed: () async {
-                                            try {
-                                              await backupService.signIn();
-                                            } catch (e) {
-                                              if (context.mounted) {
-                                                ScaffoldMessenger.of(context).showSnackBar(
-                                                  SnackBar(
-                                                    content: Text('Sign-in failed: $e'),
-                                                    backgroundColor: Colors.red,
-                                                    duration: const Duration(seconds: 6),
-                                                  ),
-                                                );
-                                              }
-                                            }
-                                          },
+                                          onPressed: () => _showSignInInstructions(context, backupService),
                                           icon: Image.asset('assets/google_logo.png', height: 24),
                                           label: const Text('Sign in with Google'),
                                           style: ElevatedButton.styleFrom(
@@ -797,6 +783,89 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
         ],
       ),
     );
+  }
+  Future<void> _showSignInInstructions(BuildContext context, BackupService backupService) async {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final primary = Theme.of(context).colorScheme.primary;
+    
+    final proceed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: isDark ? const Color(0xFF252535) : Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Row(
+          children: [
+            const Icon(Icons.security_rounded, color: Colors.green),
+            const SizedBox(width: 10),
+            Text('Important Notice', style: TextStyle(fontWeight: FontWeight.bold, color: isDark ? Colors.white : Colors.black87)),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'To use the cloud backup and rooms features properly, you MUST grant Google Drive permissions.',
+              style: TextStyle(fontSize: 14, color: isDark ? Colors.white70 : Colors.black87),
+            ),
+            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.orange.withOpacity(0.1),
+                border: Border.all(color: Colors.orange.withOpacity(0.5)),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: const Text(
+                '⚠️ When the Google permission screen appears, please ensure you check ALL the boxes (Select All).',
+                style: TextStyle(fontWeight: FontWeight.bold, color: Colors.orange),
+              ),
+            ),
+            const SizedBox(height: 16),
+            const Text(
+              'Why?',
+              style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey),
+            ),
+            const SizedBox(height: 4),
+            const Text(
+              'The app needs permission to create a specific folder in your Drive to save backups and manage class rooms. It will only access files it creates, not your personal files.',
+              style: TextStyle(fontSize: 13, color: Colors.grey),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: primary,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Proceed', style: TextStyle(fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
+    );
+
+    if (proceed == true) {
+      try {
+        await backupService.signIn();
+      } catch (e) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Sign-in failed: $e'),
+              backgroundColor: Colors.red,
+              duration: const Duration(seconds: 6),
+            ),
+          );
+        }
+      }
+    }
   }
 }
 
