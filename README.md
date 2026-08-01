@@ -46,7 +46,9 @@ Track GPA in real-time, import faculty timetables from HTML exports, and stay on
 * 🗂️ **Structured GPA View** — Semesters are grouped by academic year, providing a clean and organized overview of your progress.
 * 📄 **Result Sheet Generation** — Export a beautifully formatted PDF report of your academic performance and grades.
 * 📅 **Smart Timetable Import** — Import schedules directly from faculty HTML exports with automatic parsing.
+* 📝 **Exam Tracking** — Organize and keep track of your upcoming exam schedules effortlessly.
 * 📚 **CA Marks Extraction** — Upload multiple PDFs at once to automatically extract and track your Continuous Assessment marks.
+* 💬 **Collaborative Rooms** — Create and join study rooms, chat with peers, and share files seamlessly via Google Drive and Firebase.
 * ☁️ **Cloud Backup** — Seamlessly back up and restore your data using Google Drive integration.
 * 🔔 **Class Reminders** — Weekly notification reminders with customizable lead times for Android 12+.
 * 💾 **Offline First** — All data stored locally via SQLite — no internet connection required.
@@ -64,7 +66,7 @@ Track GPA in real-time, import faculty timetables from HTML exports, and stay on
 | **Framework**         | Flutter 3.x                         |
 | **UI Design**         | Material Design 3                   |
 | **State Management**  | Provider                            |
-| **Database**          | SQLite (`sqflite`)                  |
+| **Database**          | SQLite, Firebase, Google Drive      |
 | **HTML Parsing**      | `package:html`                      |
 | **Notifications**     | `flutter_local_notifications`       |
 | **Platform**          | Android (iOS support planned)       |
