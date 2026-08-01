@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:ui';
 
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
@@ -241,6 +242,36 @@ class _TimetableUploadScreenState extends State<TimetableUploadScreen>
                       onPressed: _selectedSubGroup == null
                           ? null
                           : () async {
+                              // Show loading dialog
+                              showDialog(
+                                context: context,
+                                barrierDismissible: false,
+                                builder: (ctx) => Center(
+                                  child: Container(
+                                    padding: const EdgeInsets.all(24),
+                                    decoration: BoxDecoration(
+                                      color: isDark ? const Color(0xFF1C1C26) : Colors.white,
+                                      borderRadius: BorderRadius.circular(20),
+                                    ),
+                                    child: Column(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        CircularProgressIndicator(color: primary),
+                                        const SizedBox(height: 16),
+                                        DefaultTextStyle(
+                                          style: TextStyle(
+                                            color: isDark ? Colors.white : Colors.black87,
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                          child: const Text('Building Timetable...'),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              );
+
                               await context
                                   .read<TimetableProvider>()
                                   .selectTimetable(_selectedSemester!,
@@ -250,6 +281,10 @@ class _TimetableUploadScreenState extends State<TimetableUploadScreen>
                                   .scheduleReminders();
                               if (!mounted) return;
                               await _loadSavedProfiles();
+                              
+                              // Close loading dialog
+                              Navigator.of(context).pop();
+
                               Navigator.of(context).push(MaterialPageRoute(
                                   builder: (_) => const TimetableViewScreen()));
                             },
@@ -382,24 +417,55 @@ class _TimetableUploadScreenState extends State<TimetableUploadScreen>
                     onDelete: () async {
                       final confirm = await showDialog<bool>(
                         context: context,
-                        builder: (ctx) => AlertDialog(
-                          shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(20)),
-                          title: const Text('Delete Timetable'),
-                          content: const Text(
-                              'Are you sure you want to delete this saved timetable?'),
-                          actions: [
-                            TextButton(
-                                onPressed: () => Navigator.pop(ctx, false),
-                                child: const Text('Cancel')),
-                            ElevatedButton(
-                              onPressed: () => Navigator.pop(ctx, true),
-                              style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.redAccent,
-                                  foregroundColor: Colors.white),
-                              child: const Text('Delete'),
+                        builder: (ctx) => Dialog(
+                          backgroundColor: Colors.transparent,
+                          elevation: 0,
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(28),
+                            child: BackdropFilter(
+                              filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  color: (isDark ? const Color(0xFF1C1C26) : Colors.white).withOpacity(0.85),
+                                  borderRadius: BorderRadius.circular(28),
+                                  border: Border.all(color: Colors.white.withOpacity(0.1)),
+                                  boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.3), blurRadius: 30)],
+                                ),
+                                padding: const EdgeInsets.all(24),
+                                child: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    const Text('Delete Timetable', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 20)),
+                                    const SizedBox(height: 16),
+                                    const Text('Are you sure you want to delete this saved timetable?', style: TextStyle(height: 1.5, fontSize: 15)),
+                                    const SizedBox(height: 32),
+                                    Row(
+                                      mainAxisAlignment: MainAxisAlignment.end,
+                                      children: [
+                                        TextButton(
+                                          onPressed: () => Navigator.pop(ctx, false),
+                                          child: const Text('Cancel', style: TextStyle(fontWeight: FontWeight.bold)),
+                                        ),
+                                        const SizedBox(width: 12),
+                                        ElevatedButton(
+                                          onPressed: () => Navigator.pop(ctx, true),
+                                          style: ElevatedButton.styleFrom(
+                                            backgroundColor: Colors.redAccent,
+                                            foregroundColor: Colors.white,
+                                            elevation: 0,
+                                            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                          ),
+                                          child: const Text('Delete', style: TextStyle(fontWeight: FontWeight.bold)),
+                                        ),
+                                      ],
+                                    ),
+                                  ],
+                                ),
+                              ),
                             ),
-                          ],
+                          ),
                         ),
                       );
                       if (confirm == true) {
@@ -788,18 +854,27 @@ class _SavedTimetableCard extends StatelessWidget {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF252535) : Colors.white,
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(isDark ? 0.3 : 0.06),
+            color: Colors.black.withOpacity(isDark ? 0.3 : 0.05),
             blurRadius: 16,
             offset: const Offset(0, 4),
           ),
         ],
       ),
-      child: Material(
-        color: Colors.transparent,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(20),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
+          child: Container(
+            decoration: BoxDecoration(
+              color: (isDark ? const Color(0xFF252535) : Colors.white).withOpacity(0.7),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: Colors.white.withOpacity(isDark ? 0.05 : 0.4), width: 1.5),
+            ),
+            child: Material(
+              color: Colors.transparent,
         borderRadius: BorderRadius.circular(20),
         child: InkWell(
           onTap: onTap,
@@ -865,6 +940,6 @@ class _SavedTimetableCard extends StatelessWidget {
           ),
         ),
       ),
-    );
+    ))));
   }
 }

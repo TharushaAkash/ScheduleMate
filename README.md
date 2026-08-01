@@ -158,11 +158,11 @@ ScheduleMate/
 ## 🚧 Roadmap
 
 - [ ] ✏️ Edit/Delete semesters and courses
-- [ ] ⏰ Customizable reminder lead times in settings UI
-- [ ] 💾 Auto-backup timetable cache
+- [x] ⏰ Customizable reminder lead times in settings UI
+- [x] 💾 Auto-backup timetable cache
 - [ ] 🎯 Multiple timetable parser profiles per institution
 - [ ] 📊 GPA trend analytics & charts
-- [ ] 🌙 Dark mode support
+- [x] 🌙 Dark mode support
 - [ ] 🌍 Multi-language support (Sinhala, Tamil, English)
 - [ ] 📤 Export GPA transcript as PDF
 

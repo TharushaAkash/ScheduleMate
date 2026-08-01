@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -105,9 +106,19 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
     final backupService = Provider.of<BackupService>(context);
 
     return Scaffold(
-      backgroundColor: isDark ? const Color(0xFF1E1E2E) : const Color(0xFFF8F7FF),
-      body: CustomScrollView(
-        slivers: [
+      backgroundColor: isDark ? const Color(0xFF09090E) : const Color(0xFFF8F7FF),
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: isDark 
+              ? [const Color(0xFF13131A), const Color(0xFF0B0B10)] 
+              : [const Color(0xFFF4F3F8), const Color(0xFFE9E7F2)],
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+          ),
+        ),
+        child: CustomScrollView(
+          slivers: [
           SliverAppBar(
             expandedHeight: 220,
             pinned: true,
@@ -218,22 +229,21 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
                       const SizedBox(height: 16),
                       Consumer<ThemeProvider>(
                         builder: (context, themeProvider, _) {
-                          return Container(
-                            decoration: BoxDecoration(
-                              color: isDark ? const Color(0xFF252535) : Colors.white,
-                              borderRadius: BorderRadius.circular(20),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black.withOpacity(isDark ? 0.3 : 0.06),
-                                  blurRadius: 16,
-                                  offset: const Offset(0, 4),
+                          return ClipRRect(
+                            borderRadius: BorderRadius.circular(24),
+                            child: BackdropFilter(
+                              filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  color: (isDark ? const Color(0xFF161622) : Colors.white).withOpacity(0.85),
+                                  borderRadius: BorderRadius.circular(24),
+                                  border: Border.all(color: Colors.white.withOpacity(isDark ? 0.1 : 0.4)),
+                                  boxShadow: [BoxShadow(color: Colors.black.withOpacity(isDark ? 0.3 : 0.05), blurRadius: 30)],
                                 ),
-                              ],
-                            ),
-                            child: Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-                              child: Column(
-                                children: [
+                                child: Padding(
+                                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                                  child: Column(
+                                    children: [
                                   Padding(
                                     padding: const EdgeInsets.symmetric(vertical: 8),
                                     child: Row(
@@ -397,179 +407,266 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
                                 ],
                               ),
                             ),
-                          );
-                        },
+                          ),
+                        ),
+                      );
+                    },
                       ),
                       const SizedBox(height: 40),
                       Consumer<BackupService>(
                         builder: (context, backupService, _) {
+                          String _fmtTime(DateTime? dt) {
+                            if (dt == null) return 'Never';
+                            final now = DateTime.now();
+                            final diff = now.difference(dt);
+                            if (diff.inMinutes < 1) return 'Just now';
+                            if (diff.inHours < 1) return '${diff.inMinutes}m ago';
+                            if (diff.inDays < 1) return '${diff.inHours}h ago';
+                            if (diff.inDays == 1) return 'Yesterday';
+                            return '${dt.day}/${dt.month}/${dt.year} ${dt.hour.toString().padLeft(2,'0')}:${dt.minute.toString().padLeft(2,'0')}';
+                          }
+
                           return Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               const _SectionHeader(title: 'Google Drive Backup', icon: Icons.cloud_done_rounded),
                               const SizedBox(height: 16),
-                              Container(
-                                decoration: BoxDecoration(
-                                  color: isDark ? const Color(0xFF252535) : Colors.white,
-                                  borderRadius: BorderRadius.circular(20),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: Colors.black.withOpacity(isDark ? 0.3 : 0.06),
-                                      blurRadius: 16,
-                                      offset: const Offset(0, 4),
+                              ClipRRect(
+                                borderRadius: BorderRadius.circular(24),
+                                child: BackdropFilter(
+                                  filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+                                  child: Container(
+                                    decoration: BoxDecoration(
+                                      color: (isDark ? const Color(0xFF161622) : Colors.white).withOpacity(0.85),
+                                      borderRadius: BorderRadius.circular(24),
+                                      border: Border.all(color: Colors.white.withOpacity(isDark ? 0.1 : 0.4)),
+                                      boxShadow: [BoxShadow(color: Colors.black.withOpacity(isDark ? 0.3 : 0.05), blurRadius: 30)],
                                     ),
-                                  ],
-                                ),
-                                padding: const EdgeInsets.all(20),
-                                child: Column(
-                                  children: [
-                                    if (!backupService.isSignedIn)
-                                      SizedBox(
-                                        width: double.infinity,
-                                        height: 50,
-                                        child: ElevatedButton.icon(
-                                          onPressed: () => _showSignInInstructions(context, backupService),
-                                          icon: Image.asset('assets/google_logo.png', height: 24),
-                                          label: const Text('Sign in with Google'),
-                                          style: ElevatedButton.styleFrom(
-                                            backgroundColor: Colors.white,
-                                            foregroundColor: Colors.black87,
-                                            elevation: 2,
-                                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                                          ),
-                                        ),
-                                      )
-                                    else
-                                      Column(
-                                        children: [
-                                          Row(
+                                    padding: const EdgeInsets.all(20),
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        if (!backupService.isSignedIn)
+                                          SizedBox(
+                                            width: double.infinity,
+                                            height: 50,
+                                            child: ElevatedButton.icon(
+                                              onPressed: () => _showSignInInstructions(context, backupService),
+                                              icon: Image.asset('assets/google_logo.png', height: 24),
+                                              label: const Text('Sign in with Google', style: TextStyle(fontWeight: FontWeight.bold)),
+                                              style: ElevatedButton.styleFrom(
+                                                backgroundColor: Colors.white,
+                                                foregroundColor: Colors.black87,
+                                                elevation: 2,
+                                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                                              ),
+                                            ),
+                                          )
+                                        else
+                                          Column(
+                                            crossAxisAlignment: CrossAxisAlignment.start,
                                             children: [
-                                              CircleAvatar(
-                                                radius: 24,
-                                                backgroundImage: backupService.currentUser?.photoUrl != null
-                                                    ? NetworkImage(backupService.currentUser!.photoUrl!)
-                                                    : null,
-                                                child: backupService.currentUser?.photoUrl == null
-                                                    ? const Icon(Icons.person)
-                                                    : null,
-                                              ),
-                                              const SizedBox(width: 16),
-                                              Expanded(
-                                                child: Column(
-                                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                                  children: [
-                                                    Text(
-                                                      backupService.currentUser?.displayName ?? 'Signed In',
-                                                      style: TextStyle(
-                                                        fontWeight: FontWeight.bold,
-                                                        fontSize: 16,
-                                                        color: isDark ? Colors.white : Colors.black87,
-                                                      ),
-                                                    ),
-                                                    Text(
-                                                      backupService.currentUser?.email ?? '',
-                                                      style: TextStyle(
-                                                        fontSize: 13,
-                                                        color: isDark ? Colors.white70 : Colors.black54,
-                                                      ),
-                                                    ),
-                                                  ],
-                                                ),
-                                              ),
-                                              IconButton(
-                                                icon: const Icon(Icons.logout_rounded, color: Colors.redAccent),
-                                                onPressed: () async {
-                                                  await backupService.signOut();
-                                                  await DatabaseHelper.instance.clearRooms();
-                                                },
-                                                tooltip: 'Sign Out',
-                                              ),
-                                            ],
-                                          ),
-                                          const SizedBox(height: 24),
-                                          Row(
-                                            children: [
-                                              Expanded(
-                                                child: ElevatedButton.icon(
-                                                  onPressed: () async {
-                                                    try {
-                                                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Backing up to Drive...')));
-                                                      await backupService.backupDatabase();
-                                                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-                                                        content: Text('Backup Successful!'),
-                                                        backgroundColor: Colors.green,
-                                                      ));
-                                                    } catch (e) {
-                                                      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                                                        content: Text('Backup Failed: $e'),
-                                                        backgroundColor: Colors.red,
-                                                      ));
-                                                    }
-                                                  },
-                                                  icon: const Icon(Icons.cloud_upload_rounded),
-                                                  label: const Text('Backup'),
-                                                  style: ElevatedButton.styleFrom(
-                                                    backgroundColor: isDark ? const Color(0xFF333344) : Colors.grey[200],
-                                                    foregroundColor: isDark ? Colors.white : Colors.black87,
-                                                    elevation: 0,
-                                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                                                    padding: const EdgeInsets.symmetric(vertical: 12),
+                                              // User info row
+                                              Row(
+                                                children: [
+                                                  CircleAvatar(
+                                                    radius: 24,
+                                                    backgroundImage: backupService.currentUser?.photoUrl != null
+                                                        ? NetworkImage(backupService.currentUser!.photoUrl!)
+                                                        : null,
+                                                    child: backupService.currentUser?.photoUrl == null
+                                                        ? const Icon(Icons.person)
+                                                        : null,
                                                   ),
-                                                ),
+                                                  const SizedBox(width: 14),
+                                                  Expanded(
+                                                    child: Column(
+                                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                                      children: [
+                                                        Text(
+                                                          backupService.currentUser?.displayName ?? 'Signed In',
+                                                          style: TextStyle(
+                                                            fontWeight: FontWeight.bold,
+                                                            fontSize: 16,
+                                                            color: isDark ? Colors.white : Colors.black87,
+                                                          ),
+                                                        ),
+                                                        Text(
+                                                          backupService.currentUser?.email ?? '',
+                                                          style: TextStyle(
+                                                            fontSize: 12,
+                                                            color: isDark ? Colors.white54 : Colors.black45,
+                                                          ),
+                                                        ),
+                                                      ],
+                                                    ),
+                                                  ),
+                                                  TextButton.icon(
+                                                    icon: const Icon(Icons.logout_rounded, size: 16, color: Colors.redAccent),
+                                                    label: const Text('Sign Out', style: TextStyle(color: Colors.redAccent, fontSize: 13)),
+                                                    onPressed: () async {
+                                                      await backupService.signOut();
+                                                      await DatabaseHelper.instance.clearRooms();
+                                                    },
+                                                  ),
+                                                ],
                                               ),
-                                              const SizedBox(width: 12),
-                                              Expanded(
-                                                child: ElevatedButton.icon(
-                                                  onPressed: () async {
-                                                    final confirm = await showDialog<bool>(
-                                                      context: context,
-                                                      builder: (c) => AlertDialog(
-                                                        title: const Text('Restore Backup'),
-                                                        content: const Text('This will overwrite all local data with the cloud backup. Do you want to continue?'),
-                                                        actions: [
-                                                          TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('Cancel')),
-                                                          TextButton(
-                                                            onPressed: () => Navigator.pop(c, true),
-                                                            child: const Text('Restore', style: TextStyle(color: Colors.redAccent)),
+                                              const SizedBox(height: 20),
+                                              Divider(color: Colors.grey.withOpacity(0.15), height: 1),
+                                              const SizedBox(height: 20),
+
+                                              // Backup & Restore buttons (Unified without separate chips)
+                                              Row(
+                                                children: [
+                                                  Expanded(
+                                                    child: ElevatedButton(
+                                                      onPressed: () async {
+                                                        try {
+                                                          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Backing up to Drive...')));
+                                                          await backupService.backupDatabase();
+                                                          if (context.mounted) {
+                                                            showDialog(
+                                                              context: context,
+                                                              builder: (ctx) => AlertDialog(
+                                                                backgroundColor: isDark ? const Color(0xFF161622) : Colors.white,
+                                                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24), side: BorderSide(color: Colors.green.withOpacity(0.5), width: 1.5)),
+                                                                title: Column(
+                                                                  children: [
+                                                                    const Icon(Icons.check_circle_rounded, color: Colors.green, size: 54),
+                                                                    const SizedBox(height: 16),
+                                                                    Text('Backup Successful', style: TextStyle(color: isDark ? Colors.white : Colors.black, fontWeight: FontWeight.bold, fontSize: 20)),
+                                                                  ],
+                                                                ),
+                                                                content: Text('Your data has been securely backed up to Google Drive. You can restore it anytime.', textAlign: TextAlign.center, style: TextStyle(color: isDark ? Colors.white70 : Colors.black87, fontSize: 14)),
+                                                                actionsAlignment: MainAxisAlignment.center,
+                                                                actions: [
+                                                                  ElevatedButton(
+                                                                    style: ElevatedButton.styleFrom(
+                                                                      backgroundColor: Colors.green,
+                                                                      foregroundColor: Colors.white,
+                                                                      elevation: 0,
+                                                                      padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
+                                                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                                                                    ),
+                                                                    onPressed: () => Navigator.pop(ctx),
+                                                                    child: const Text('Awesome!', style: TextStyle(fontWeight: FontWeight.bold)),
+                                                                  ),
+                                                                ],
+                                                              ),
+                                                            );
+                                                          }
+                                                        } catch (e) {
+                                                          if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                                                            content: Text('Backup Failed: $e'),
+                                                            backgroundColor: Colors.red,
+                                                          ));
+                                                        }
+                                                      },
+                                                      style: ElevatedButton.styleFrom(
+                                                        backgroundColor: Colors.white.withOpacity(isDark ? 0.05 : 0.8),
+                                                        foregroundColor: isDark ? Colors.white : Colors.black87,
+                                                        elevation: 0,
+                                                        shape: RoundedRectangleBorder(
+                                                          borderRadius: BorderRadius.circular(14),
+                                                          side: BorderSide(color: Colors.white.withOpacity(isDark ? 0.1 : 0.4)),
+                                                        ),
+                                                        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+                                                      ),
+                                                      child: Column(
+                                                        children: [
+                                                          Row(
+                                                            mainAxisAlignment: MainAxisAlignment.center,
+                                                            children: [
+                                                              const Icon(Icons.cloud_upload_rounded, size: 16),
+                                                              const SizedBox(width: 6),
+                                                              const Text('Backup', style: TextStyle(fontWeight: FontWeight.bold)),
+                                                            ],
+                                                          ),
+                                                          const SizedBox(height: 4),
+                                                          Text(
+                                                            _fmtTime(backupService.lastBackupTime),
+                                                            style: TextStyle(fontSize: 10, color: (isDark ? Colors.white : Colors.black).withOpacity(0.5)),
                                                           ),
                                                         ],
                                                       ),
-                                                    );
-                                                    if (confirm == true) {
-                                                      try {
-                                                        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Restoring from Drive...')));
-                                                        await backupService.restoreDatabase();
-                                                        Provider.of<GpaProvider>(context, listen: false).loadSemesters();
-                                                        Provider.of<TimetableProvider>(context, listen: false).loadDefaultTimetable();
-                                                        _loadProfileData();
-                                                        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-                                                          content: Text('Restore Successful!'),
-                                                          backgroundColor: Colors.green,
-                                                        ));
-                                                      } catch (e) {
-                                                        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                                                          content: Text('Restore Failed: $e'),
-                                                          backgroundColor: Colors.red,
-                                                        ));
-                                                      }
-                                                    }
-                                                  },
-                                                  icon: const Icon(Icons.cloud_download_rounded),
-                                                  label: const Text('Restore'),
-                                                  style: ElevatedButton.styleFrom(
-                                                    backgroundColor: isDark ? const Color(0xFF333344) : Colors.grey[200],
-                                                    foregroundColor: isDark ? Colors.white : Colors.black87,
-                                                    elevation: 0,
-                                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                                                    padding: const EdgeInsets.symmetric(vertical: 12),
+                                                    ),
                                                   ),
-                                                ),
+                                                  const SizedBox(width: 12),
+                                                  Expanded(
+                                                    child: ElevatedButton(
+                                                      onPressed: () async {
+                                                        final confirm = await showDialog<bool>(
+                                                          context: context,
+                                                          builder: (c) => AlertDialog(
+                                                            backgroundColor: isDark ? const Color(0xFF161622) : Colors.white,
+                                                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                                                            title: const Text('Restore Backup'),
+                                                            content: const Text('This will overwrite all local data with the cloud backup. Do you want to continue?'),
+                                                            actions: [
+                                                              TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('Cancel')),
+                                                              TextButton(
+                                                                onPressed: () => Navigator.pop(c, true),
+                                                                child: const Text('Restore', style: TextStyle(color: Colors.redAccent)),
+                                                              ),
+                                                            ],
+                                                          ),
+                                                        );
+                                                        if (confirm == true) {
+                                                          try {
+                                                            if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Restoring from Drive...')));
+                                                            await backupService.restoreDatabase();
+                                                            if (context.mounted) {
+                                                              Provider.of<GpaProvider>(context, listen: false).loadSemesters();
+                                                              Provider.of<TimetableProvider>(context, listen: false).loadDefaultTimetable();
+                                                              _loadProfileData();
+                                                              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+                                                                content: Text('Restore Successful!'),
+                                                              ));
+                                                            }
+                                                          } catch (e) {
+                                                            if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                                                              content: Text('Restore Failed: $e'),
+                                                              backgroundColor: Colors.red,
+                                                            ));
+                                                          }
+                                                        }
+                                                      },
+                                                      style: ElevatedButton.styleFrom(
+                                                        backgroundColor: Colors.white.withOpacity(isDark ? 0.05 : 0.8),
+                                                        foregroundColor: isDark ? Colors.white : Colors.black87,
+                                                        elevation: 0,
+                                                        shape: RoundedRectangleBorder(
+                                                          borderRadius: BorderRadius.circular(14),
+                                                          side: BorderSide(color: Colors.white.withOpacity(isDark ? 0.1 : 0.4)),
+                                                        ),
+                                                        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+                                                      ),
+                                                      child: Column(
+                                                        children: [
+                                                          Row(
+                                                            mainAxisAlignment: MainAxisAlignment.center,
+                                                            children: [
+                                                              const Icon(Icons.cloud_download_rounded, size: 16),
+                                                              const SizedBox(width: 6),
+                                                              const Text('Restore', style: TextStyle(fontWeight: FontWeight.bold)),
+                                                            ],
+                                                          ),
+                                                          const SizedBox(height: 4),
+                                                          Text(
+                                                            _fmtTime(backupService.lastRestoreTime),
+                                                            style: TextStyle(fontSize: 10, color: (isDark ? Colors.white : Colors.black).withOpacity(0.5)),
+                                                          ),
+                                                        ],
+                                                      ),
+                                                    ),
+                                                  ),
+                                                ],
                                               ),
                                             ],
-                                          )
-                                        ],
-                                      ),
-                                  ],
+                                          ),
+                                      ],
+                                    ),
+                                  ),
                                 ),
                               ),
                             ],
@@ -635,142 +732,143 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
                       const SizedBox(height: 40),
                       _SectionHeader(title: 'About ScheduleMate', icon: Icons.info_outline_rounded),
                       const SizedBox(height: 16),
-                      Container(
-                        decoration: BoxDecoration(
-                          color: isDark ? const Color(0xFF252535) : Colors.white,
-                          borderRadius: BorderRadius.circular(20),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withOpacity(isDark ? 0.3 : 0.06),
-                              blurRadius: 16,
-                              offset: const Offset(0, 4),
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(24),
+                        child: BackdropFilter(
+                          filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+                          child: Container(
+                            decoration: BoxDecoration(
+                              color: (isDark ? const Color(0xFF161622) : Colors.white).withOpacity(0.85),
+                              borderRadius: BorderRadius.circular(24),
+                              border: Border.all(color: Colors.white.withOpacity(isDark ? 0.1 : 0.4)),
+                              boxShadow: [BoxShadow(color: Colors.black.withOpacity(isDark ? 0.3 : 0.05), blurRadius: 30)],
                             ),
-                          ],
-                        ),
-                        padding: const EdgeInsets.all(20),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
+                            padding: const EdgeInsets.all(20),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Container(
-                                  width: 60,
-                                  height: 60,
-                                  decoration: BoxDecoration(
-                                    color: primary.withOpacity(0.1),
-                                    borderRadius: BorderRadius.circular(16),
-                                  ),
-                                  child: Icon(Icons.calendar_month_rounded, size: 32, color: primary),
-                                ),
-                                const SizedBox(width: 16),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        'ScheduleMate',
-                                        style: TextStyle(
-                                          fontSize: 20,
-                                          fontWeight: FontWeight.bold,
-                                          color: isDark ? Colors.white : Colors.black87,
-                                        ),
+                                Row(
+                                  children: [
+                                    Container(
+                                      width: 60,
+                                      height: 60,
+                                      decoration: BoxDecoration(
+                                        color: primary.withOpacity(0.1),
+                                        borderRadius: BorderRadius.circular(16),
                                       ),
-                                      Text(
-                                        'Version $_appVersion',
-                                        style: TextStyle(
-                                          fontSize: 14,
-                                          color: isDark ? Colors.white70 : Colors.black54,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 20),
-                            Text(
-                              'A smart and beautiful way to manage your university timetable and track your GPA effortlessly. Built with ❤️ for students.',
-                              style: TextStyle(
-                                fontSize: 14,
-                                color: isDark ? Colors.white70 : Colors.black87,
-                                height: 1.5,
-                              ),
-                            ),
-                            const SizedBox(height: 20),
-                            Divider(color: Colors.grey.withOpacity(0.2), height: 1),
-                            const SizedBox(height: 20),
-                            Row(
-                              children: [
-                                Icon(Icons.developer_mode_rounded, size: 20, color: primary),
-                                const SizedBox(width: 12),
-                                Text(
-                                  'Developer',
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.w600,
-                                    color: isDark ? Colors.white : Colors.black87,
-                                  ),
-                                ),
-                                const Spacer(),
-                                Text(
-                                  'Tharusha Akash',
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    color: primary,
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 20),
-                            Row(
-                              children: [
-                                Expanded(
-                                  child: ElevatedButton.icon(
-                                    onPressed: () {
-                                      Clipboard.setData(const ClipboardData(text: 'https://sourceforge.net/projects/schedulemate/'));
-                                      ScaffoldMessenger.of(context).showSnackBar(
-                                        SnackBar(
-                                          content: const Row(
-                                            children: [
-                                              Icon(Icons.check_circle_rounded, color: Colors.white),
-                                              SizedBox(width: 8),
-                                              Text('Link copied!'),
-                                            ],
+                                      child: Icon(Icons.calendar_month_rounded, size: 32, color: primary),
+                                    ),
+                                    const SizedBox(width: 16),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            'ScheduleMate',
+                                            style: TextStyle(
+                                              fontSize: 20,
+                                              fontWeight: FontWeight.bold,
+                                              color: isDark ? Colors.white : Colors.black87,
+                                            ),
                                           ),
-                                          backgroundColor: primary,
-                                          behavior: SnackBarBehavior.floating,
+                                          Text(
+                                            'Version $_appVersion',
+                                            style: TextStyle(
+                                              fontSize: 14,
+                                              color: isDark ? Colors.white70 : Colors.black54,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 20),
+                                Text(
+                                  'A smart and beautiful way to manage your university timetable and track your GPA effortlessly. Built with ❤️ for students.',
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    color: isDark ? Colors.white70 : Colors.black87,
+                                    height: 1.5,
+                                  ),
+                                ),
+                                const SizedBox(height: 20),
+                                Divider(color: Colors.grey.withOpacity(0.2), height: 1),
+                                const SizedBox(height: 20),
+                                Row(
+                                  children: [
+                                    Icon(Icons.developer_mode_rounded, size: 20, color: primary),
+                                    const SizedBox(width: 12),
+                                    Text(
+                                      'Developer',
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.w600,
+                                        color: isDark ? Colors.white : Colors.black87,
+                                      ),
+                                    ),
+                                    const Spacer(),
+                                    Text(
+                                      'Tharusha Akash',
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        color: primary,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 20),
+                                Row(
+                                  children: [
+                                    Expanded(
+                                      child: ElevatedButton.icon(
+                                        onPressed: () {
+                                          Clipboard.setData(const ClipboardData(text: 'https://sourceforge.net/projects/schedulemate/'));
+                                          ScaffoldMessenger.of(context).showSnackBar(
+                                            SnackBar(
+                                              content: const Row(
+                                                children: [
+                                                  Icon(Icons.check_circle_rounded, color: Colors.white),
+                                                  SizedBox(width: 8),
+                                                  Text('Link copied!'),
+                                                ],
+                                              ),
+                                              backgroundColor: primary,
+                                              behavior: SnackBarBehavior.floating,
+                                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                            ),
+                                          );
+                                        },
+                                        icon: const Icon(Icons.copy_rounded, size: 18),
+                                        label: const Text('Copy Link'),
+                                        style: ElevatedButton.styleFrom(
+                                          backgroundColor: isDark ? const Color(0xFF333344) : Colors.grey[200],
+                                          foregroundColor: isDark ? Colors.white : Colors.black87,
+                                          elevation: 0,
                                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                                         ),
-                                      );
-                                    },
-                                    icon: const Icon(Icons.copy_rounded, size: 18),
-                                    label: const Text('Copy Link'),
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor: isDark ? const Color(0xFF333344) : Colors.grey[200],
-                                      foregroundColor: isDark ? Colors.white : Colors.black87,
-                                      elevation: 0,
-                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                      ),
                                     ),
-                                  ),
-                                ),
-                                const SizedBox(width: 12),
-                                Expanded(
-                                  child: ElevatedButton.icon(
-                                    onPressed: () {
-                                      Share.share('Check out ScheduleMate! Manage your timetable and track your GPA easily: https://sourceforge.net/projects/schedulemate/');
-                                    },
-                                    icon: const Icon(Icons.share_rounded, size: 18),
-                                    label: const Text('Share'),
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor: primary,
-                                      foregroundColor: Colors.white,
-                                      elevation: 0,
-                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                    const SizedBox(width: 12),
+                                    Expanded(
+                                      child: ElevatedButton.icon(
+                                        onPressed: () {
+                                          Share.share('Check out ScheduleMate! Manage your timetable and track your GPA easily: https://sourceforge.net/projects/schedulemate/');
+                                        },
+                                        icon: const Icon(Icons.share_rounded, size: 18),
+                                        label: const Text('Share'),
+                                        style: ElevatedButton.styleFrom(
+                                          backgroundColor: primary,
+                                          foregroundColor: Colors.white,
+                                          elevation: 0,
+                                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                        ),
+                                      ),
                                     ),
-                                  ),
+                                  ],
                                 ),
                               ],
                             ),
-                          ],
+                          ),
                         ),
                       ),
                       const SizedBox(height: 40),
@@ -780,7 +878,9 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
               ),
             ),
           ),
+          const SliverPadding(padding: EdgeInsets.only(bottom: 100)),
         ],
+      ),
       ),
     );
   }
@@ -958,3 +1058,4 @@ class _ModernTextField extends StatelessWidget {
     );
   }
 }
+

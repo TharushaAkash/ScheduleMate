@@ -39,6 +39,12 @@ class BackupService extends ChangeNotifier {
 
   bool get isSignedIn => _currentUser != null;
 
+  DateTime? _lastBackupTime;
+  DateTime? get lastBackupTime => _lastBackupTime;
+
+  DateTime? _lastRestoreTime;
+  DateTime? get lastRestoreTime => _lastRestoreTime;
+
   Future<void> init() async {
     googleSignIn.onCurrentUserChanged.listen((account) {
       _currentUser = account;
@@ -56,6 +62,13 @@ class BackupService extends ChangeNotifier {
     } catch (e) {
       debugPrint('Silent sign in failed: $e');
     }
+
+    // Load saved timestamps
+    final prefs = await SharedPreferences.getInstance();
+    final backupMs = prefs.getInt('last_backup_time');
+    final restoreMs = prefs.getInt('last_restore_time');
+    if (backupMs != null) _lastBackupTime = DateTime.fromMillisecondsSinceEpoch(backupMs);
+    if (restoreMs != null) _lastRestoreTime = DateTime.fromMillisecondsSinceEpoch(restoreMs);
   }
 
   Future<void> _saveProfileData(gsi.GoogleSignInAccount? account) async {
@@ -160,6 +173,12 @@ class BackupService extends ChangeNotifier {
     } else {
       await api.files.create(driveFilePrefs, uploadMedia: mediaPrefs);
     }
+
+    // Save timestamp
+    final prefs2 = await SharedPreferences.getInstance();
+    _lastBackupTime = DateTime.now();
+    await prefs2.setInt('last_backup_time', _lastBackupTime!.millisecondsSinceEpoch);
+    notifyListeners();
   }
 
   Future<bool> restoreDatabase() async {
@@ -219,6 +238,12 @@ class BackupService extends ChangeNotifier {
         await prefs.setString('saved_ca_marks', prefsData['saved_ca_marks']);
       }
     }
+
+    // Save restore timestamp
+    final prefs2 = await SharedPreferences.getInstance();
+    _lastRestoreTime = DateTime.now();
+    await prefs2.setInt('last_restore_time', _lastRestoreTime!.millisecondsSinceEpoch);
+    notifyListeners();
 
     return true;
   }
