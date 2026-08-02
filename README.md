@@ -18,6 +18,12 @@
 
 ---
 
+<div align="center">
+  <img src="ss/Cover.png" alt="ScheduleMate Mockup" width="100%">
+</div>
+
+<br>
+
 **ScheduleMate** is a modern, student-focused Flutter application that brings your entire academic life into one place.
 Track GPA in real-time, import faculty timetables from HTML exports, and stay on top of every class with intelligent reminders — all **completely offline**.
 
