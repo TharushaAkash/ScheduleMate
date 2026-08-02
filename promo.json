@@ -1,0 +1,9 @@
+{
+  "id": "update_rooms_001",
+  "isActive": true,
+  "imageUrl": "https://raw.githubusercontent.com/TharushaAkash/ScheduleMate/main/assets/images/rooms_banner.png",
+  "title": "Class Rooms දැන් අලුත් වෙලා! 🎉",
+  "body": "Google Drive හරහා file share කරන්න, යාළුවන් එක්ක එකතු වෙලා වැඩ කරන්න අලුත්ම Class Rooms feature එක දැන් භාවිතා කරන්න පුළුවන්!",
+  "buttonText": "Rooms වෙත යන්න",
+  "actionUrl": "tab://2"
+}

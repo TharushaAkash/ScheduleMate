@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:gpa_timetable_app/services/update_service.dart';
+import 'package:gpa_timetable_app/services/promo_popup_service.dart';
 
 import 'gpa_screen.dart';
 import 'timetable_upload_screen.dart';
@@ -23,6 +24,11 @@ class _HomeScreenState extends State<HomeScreen> {
     // Check for updates on startup
     WidgetsBinding.instance.addPostFrameCallback((_) {
       UpdateService.checkForUpdates(context);
+      PromoPopupService.checkAndShowPopup(context, onNavigate: (index) {
+        if (index >= 0 && index < _navItems.length) {
+          setState(() => _index = index);
+        }
+      });
     });
   }
 
