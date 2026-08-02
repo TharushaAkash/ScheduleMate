@@ -34,18 +34,6 @@ Track GPA in real-time, import faculty timetables from HTML exports, and stay on
 
 ---
 
-## 🖥️ App Preview
-
-<div align="center">
-  <img src="ss/Screenshot%202026-08-02%20134419.png" width="200" />
-  <img src="ss/Screenshot%202026-08-02%20134435.png" width="200" />
-  <img src="ss/Screenshot%202026-08-02%20134448.png" width="200" />
-  <img src="ss/Screenshot%202026-08-02%20135257.png" width="200" />
-  <img src="ss/Screenshot%202026-08-02%20135308.png" width="200" />
-</div>
-
----
-
 ## ✨ Features
 
 * 📊 **GPA Calculator** — Real-time semester GPA calculation with cumulative tracking and customizable grade point scales.
@@ -77,6 +65,18 @@ Track GPA in real-time, import faculty timetables from HTML exports, and stay on
 | **HTML Parsing**      | `package:html`                      |
 | **Notifications**     | `flutter_local_notifications`       |
 | **Platform**          | Android (iOS support planned)       |
+
+---
+
+## 🖥️ App Preview
+
+<div align="center">
+  <img src="ss/Screenshot%202026-08-02%20134419.png" width="200" />
+  <img src="ss/Screenshot%202026-08-02%20134435.png" width="200" />
+  <img src="ss/Screenshot%202026-08-02%20134448.png" width="200" />
+  <img src="ss/Screenshot%202026-08-02%20135257.png" width="200" />
+  <img src="ss/Screenshot%202026-08-02%20135308.png" width="200" />
+</div>
 
 ---
 
