@@ -49,17 +49,15 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
 
     return Scaffold(
       body: _pages[_index],
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
-          color: isDark ? const Color(0xFF1A1A2E) : Colors.white,
+          color: const Color(0xFF161B2F),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(isDark ? 0.4 : 0.08),
+              color: Colors.black.withOpacity(0.4),
               blurRadius: 20,
               offset: const Offset(0, -4),
             ),
@@ -113,8 +111,7 @@ class _NavBarItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final primary = Theme.of(context).colorScheme.primary;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    const primary = Color(0xFF6D5DF6);
 
     return GestureDetector(
       onTap: onTap,
@@ -131,7 +128,7 @@ class _NavBarItem extends StatelessWidget {
             ),
             child: Icon(
               icon,
-              color: selected ? primary : (isDark ? Colors.white54 : Colors.grey),
+              color: selected ? primary : Colors.white54,
               size: 24,
             ),
           ),
@@ -143,7 +140,7 @@ class _NavBarItem extends StatelessWidget {
             style: TextStyle(
               fontSize: 11,
               fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
-              color: selected ? primary : (isDark ? Colors.white54 : Colors.grey),
+              color: selected ? primary : Colors.white54,
             ),
           ),
         ],

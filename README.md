@@ -31,11 +31,11 @@ Track GPA in real-time, import faculty timetables from HTML exports, and stay on
 ## 🖥️ App Preview
 
 <div align="center">
-  <img src="ss/Screenshot%202026-07-20%20162141.png" width="200" />
-  <img src="ss/Screenshot%202026-07-20%20162219.png" width="200" />
-  <img src="ss/Screenshot%202026-07-20%20162236.png" width="200" />
-  <img src="ss/Screenshot%202026-07-20%20162254.png" width="200" />
-  <img src="ss/Screenshot%202026-07-26%20092129.png" width="200" />
+  <img src="ss/Screenshot%202026-08-02%20134419.png" width="200" />
+  <img src="ss/Screenshot%202026-08-02%20134435.png" width="200" />
+  <img src="ss/Screenshot%202026-08-02%20134448.png" width="200" />
+  <img src="ss/Screenshot%202026-08-02%20135257.png" width="200" />
+  <img src="ss/Screenshot%202026-08-02%20135308.png" width="200" />
 </div>
 
 ---

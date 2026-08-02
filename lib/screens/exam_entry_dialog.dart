@@ -266,10 +266,40 @@ class _ExamEntryDialogState extends State<ExamEntryDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    const primary = Color(0xFF7C5CFF);
+    const secondary = Color(0xFF5B8CFF);
+    const accent = Color(0xFF00D4AA);
+
+    InputDecoration decor(String label, {IconData? icon}) => InputDecoration(
+      labelText: label,
+      labelStyle: TextStyle(color: isDark ? Colors.white60 : Colors.black54, fontSize: 13),
+      filled: true,
+      fillColor: isDark ? Colors.white.withOpacity(0.04) : Colors.black.withOpacity(0.02),
+      prefixIcon: icon != null ? Icon(icon, color: isDark ? Colors.white38 : Colors.black38, size: 20) : null,
+      border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(16),
+        borderSide: BorderSide(color: isDark ? Colors.white.withOpacity(0.06) : Colors.black.withOpacity(0.05)),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(16),
+        borderSide: const BorderSide(color: primary),
+      ),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+    );
+
     return Dialog(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
+      backgroundColor: Colors.transparent,
+      child: Container(
+        decoration: BoxDecoration(
+          color: isDark ? const Color(0xFF131524) : Colors.white,
+          borderRadius: BorderRadius.circular(28),
+          border: Border.all(color: isDark ? Colors.white.withOpacity(0.08) : Colors.black.withOpacity(0.05)),
+          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.3), blurRadius: 24, offset: const Offset(0, 10))],
+        ),
+        padding: const EdgeInsets.all(24),
         child: SingleChildScrollView(
           child: Form(
             key: _formKey,
@@ -278,69 +308,103 @@ class _ExamEntryDialogState extends State<ExamEntryDialog> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 Text(
-                  widget.entry == null
-                      ? 'Add Exam Timetable'
-                      : 'Edit Exam Timetable',
-                  style: const TextStyle(
-                      fontSize: 20, fontWeight: FontWeight.bold),
+                  widget.entry == null ? 'Add Exam Timetable' : 'Edit Exam Timetable',
+                  style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: isDark ? Colors.white : Colors.black87),
                   textAlign: TextAlign.center,
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 24),
                 Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                   children: [
-                    ElevatedButton.icon(
-                      onPressed: () => _pickImage(ImageSource.camera),
-                      icon: const Icon(Icons.camera_alt),
-                      label: const Text('Camera'),
+                    Expanded(
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: primary.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(color: primary.withOpacity(0.3)),
+                        ),
+                        child: InkWell(
+                          borderRadius: BorderRadius.circular(16),
+                          onTap: () => _pickImage(ImageSource.camera),
+                          child: const Padding(
+                            padding: EdgeInsets.symmetric(vertical: 12),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(Icons.camera_alt_rounded, color: primary, size: 20),
+                                SizedBox(width: 8),
+                                Text('Camera', style: TextStyle(color: primary, fontWeight: FontWeight.bold, fontSize: 13)),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
                     ),
-                    ElevatedButton.icon(
-                      onPressed: () => _pickImage(ImageSource.gallery),
-                      icon: const Icon(Icons.photo),
-                      label: const Text('Gallery'),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: accent.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(color: accent.withOpacity(0.3)),
+                        ),
+                        child: InkWell(
+                          borderRadius: BorderRadius.circular(16),
+                          onTap: () => _pickImage(ImageSource.gallery),
+                          child: const Padding(
+                            padding: EdgeInsets.symmetric(vertical: 12),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(Icons.photo_library_rounded, color: accent, size: 20),
+                                SizedBox(width: 8),
+                                Text('Gallery', style: TextStyle(color: accent, fontWeight: FontWeight.bold, fontSize: 13)),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
                     ),
                   ],
                 ),
                 if (_isProcessing)
                   const Padding(
-                    padding: EdgeInsets.all(8.0),
+                    padding: EdgeInsets.only(top: 24.0, bottom: 8.0),
                     child: Center(child: CircularProgressIndicator()),
                   ),
                 if (_imageFile != null && !_isProcessing)
                   Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 8.0),
+                    padding: const EdgeInsets.only(top: 16.0),
                     child: ClipRRect(
-                      borderRadius: BorderRadius.circular(10),
-                      child: Image.file(_imageFile!,
-                          height: 150, fit: BoxFit.cover),
+                      borderRadius: BorderRadius.circular(16),
+                      child: Image.file(_imageFile!, height: 140, width: double.infinity, fit: BoxFit.cover),
                     ),
                   ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 24),
                 TextFormField(
                   controller: _examTypeCtrl,
-                  decoration: const InputDecoration(
-                      labelText: 'Exam Type (e.g. Final Exam, Mid Exam)', border: OutlineInputBorder()),
+                  decoration: decor('Exam Type', icon: Icons.category_rounded),
+                  style: TextStyle(color: isDark ? Colors.white : Colors.black87),
                   validator: (v) => v!.isEmpty ? 'Required' : null,
                 ),
                 const SizedBox(height: 12),
                 TextFormField(
                   controller: _subjectCodeCtrl,
-                  decoration: const InputDecoration(
-                      labelText: 'Subject Code', border: OutlineInputBorder()),
+                  decoration: decor('Subject Code', icon: Icons.code_rounded),
+                  style: TextStyle(color: isDark ? Colors.white : Colors.black87),
                   validator: (v) => v!.isEmpty ? 'Required' : null,
                 ),
                 const SizedBox(height: 12),
                 TextFormField(
                   controller: _subjectNameCtrl,
-                  decoration: const InputDecoration(
-                      labelText: 'Subject Name', border: OutlineInputBorder()),
+                  decoration: decor('Subject Name', icon: Icons.book_rounded),
+                  style: TextStyle(color: isDark ? Colors.white : Colors.black87),
                   validator: (v) => v!.isEmpty ? 'Required' : null,
                 ),
                 const SizedBox(height: 12),
                 TextFormField(
                   controller: _locationCtrl,
-                  decoration: const InputDecoration(
-                      labelText: 'Location', border: OutlineInputBorder()),
+                  decoration: decor('Location', icon: Icons.location_on_rounded),
+                  style: TextStyle(color: isDark ? Colors.white : Colors.black87),
                   validator: (v) => v!.isEmpty ? 'Required' : null,
                 ),
                 const SizedBox(height: 12),
@@ -349,8 +413,8 @@ class _ExamEntryDialogState extends State<ExamEntryDialog> {
                     Expanded(
                       child: TextFormField(
                         controller: _dateCtrl,
-                        decoration: const InputDecoration(
-                            labelText: 'Date', border: OutlineInputBorder()),
+                        decoration: decor('Date', icon: Icons.calendar_today_rounded),
+                        style: TextStyle(color: isDark ? Colors.white : Colors.black87),
                         validator: (v) => v!.isEmpty ? 'Required' : null,
                       ),
                     ),
@@ -358,8 +422,8 @@ class _ExamEntryDialogState extends State<ExamEntryDialog> {
                     Expanded(
                       child: TextFormField(
                         controller: _timeCtrl,
-                        decoration: const InputDecoration(
-                            labelText: 'Time', border: OutlineInputBorder()),
+                        decoration: decor('Time', icon: Icons.access_time_rounded),
+                        style: TextStyle(color: isDark ? Colors.white : Colors.black87),
                         validator: (v) => v!.isEmpty ? 'Required' : null,
                       ),
                     ),
@@ -371,8 +435,8 @@ class _ExamEntryDialogState extends State<ExamEntryDialog> {
                     Expanded(
                       child: TextFormField(
                         controller: _seatNoCtrl,
-                        decoration: const InputDecoration(
-                            labelText: 'Seat No', border: OutlineInputBorder()),
+                        decoration: decor('Seat No', icon: Icons.chair_rounded),
+                        style: TextStyle(color: isDark ? Colors.white : Colors.black87),
                         validator: (v) => v!.isEmpty ? 'Required' : null,
                       ),
                     ),
@@ -380,22 +444,42 @@ class _ExamEntryDialogState extends State<ExamEntryDialog> {
                     Expanded(
                       child: TextFormField(
                         controller: _sessionNoCtrl,
-                        decoration: const InputDecoration(
-                            labelText: 'Session No',
-                            border: OutlineInputBorder()),
+                        decoration: decor('Session No', icon: Icons.numbers_rounded),
+                        style: TextStyle(color: isDark ? Colors.white : Colors.black87),
                         validator: (v) => v!.isEmpty ? 'Required' : null,
                       ),
                     ),
                   ],
                 ),
-                const SizedBox(height: 20),
-                ElevatedButton(
-                  onPressed: _save,
-                  style: ElevatedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                  ),
-                  child: const Text('Save'),
-                )
+                const SizedBox(height: 32),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(context),
+                      style: TextButton.styleFrom(padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14)),
+                      child: Text('Cancel', style: TextStyle(color: isDark ? Colors.white60 : Colors.black54, fontWeight: FontWeight.bold)),
+                    ),
+                    const SizedBox(width: 12),
+                    Container(
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(colors: [primary, secondary]),
+                        borderRadius: BorderRadius.circular(16),
+                        boxShadow: [BoxShadow(color: primary.withOpacity(0.4), blurRadius: 12, offset: const Offset(0, 6))],
+                      ),
+                      child: ElevatedButton(
+                        onPressed: _save,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.transparent,
+                          shadowColor: Colors.transparent,
+                          padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 14),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                        ),
+                        child: const Text('Save', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
+                      ),
+                    ),
+                  ],
+                ),
               ],
             ),
           ),

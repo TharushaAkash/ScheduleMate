@@ -218,7 +218,7 @@ class _TimetableViewScreenState extends State<TimetableViewScreen>
               onPressed: () => Navigator.pop(context),
             ),
             flexibleSpace: FlexibleSpaceBar(
-              titlePadding: const EdgeInsets.only(left: 60, bottom: 16),
+              titlePadding: const EdgeInsets.only(left: 60, bottom: 8),
               title: Text(
                 'My Timetable',
                 style: TextStyle(
