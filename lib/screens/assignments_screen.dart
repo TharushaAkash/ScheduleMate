@@ -292,13 +292,13 @@ class _AssignmentCard extends StatelessWidget {
     if (assignment.isFullyCompleted) {
       accent = _teal;
     } else if (nm == null) {
-      accent = _secondary;
+      accent = _teal;
     } else {
       final h = nm.deadline.difference(DateTime.now()).inHours;
       if (h < 0)        { accent = _danger;  urgent = true; }
       else if (h <= 24) { accent = _danger;  urgent = true; }
       else if (h <= 72) { accent = _warning; }
-      else              { accent = _secondary; }
+      else              { accent = _teal; }
     }
 
     final String statusLabel = assignment.isFullyCompleted
