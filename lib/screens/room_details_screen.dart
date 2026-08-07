@@ -372,8 +372,8 @@ class _RoomDetailsScreenState extends State<RoomDetailsScreen> {
                   },
                 ),
 
-              // Delete (admin/creator only)
-              if (widget.room.isCreator)
+              // Delete (admin/creator only or file owner)
+              if (widget.room.isCreator || file.isOwnedByMe)
                 ListTile(
                   leading: Container(
                     padding: const EdgeInsets.all(9),
@@ -719,6 +719,7 @@ class _RoomDetailsScreenState extends State<RoomDetailsScreen> {
                 ? const Icon(Icons.chevron_right_rounded, color: _sub)
                 : const Icon(Icons.more_vert_rounded, color: _sub),
             onTap: () => _openFile(f),
+            onLongPress: () => _showFileActions(f),
           ),
         );
       },
@@ -736,6 +737,7 @@ class _RoomDetailsScreenState extends State<RoomDetailsScreen> {
         return InkWell(
           borderRadius: BorderRadius.circular(18),
           onTap: () => _openFile(f),
+          onLongPress: () => _showFileActions(f),
           child: Container(
             decoration: BoxDecoration(color: _card, borderRadius: BorderRadius.circular(18)),
             padding: const EdgeInsets.all(14),
@@ -769,7 +771,10 @@ class _RoomDetailsScreenState extends State<RoomDetailsScreen> {
         ],
       ),
     );
-    if (ok == true) await _service.deleteFile(widget.room.roomId, f);
+    if (ok == true) {
+      await _service.deleteFile(widget.room.roomId, f);
+      _refreshFiles();
+    }
   }
 
   // ─── Members Tab ─────────────────────────────────────────────────────────────
@@ -1186,6 +1191,9 @@ class _RoomDetailsScreenState extends State<RoomDetailsScreen> {
     );
     if (ok == true) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Clearing chat...')));
+      setState(() {
+        _optimisticMessages.clear();
+      });
       await _service.clearChat(widget.room.roomId);
     }
   }

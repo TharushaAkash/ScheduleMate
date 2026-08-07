@@ -19,6 +19,7 @@ class RoomFile {
   final bool isFolder;
   final String? parentId;
   final String? addedByName;
+  final bool isOwnedByMe;
 
   const RoomFile({
     required this.id,
@@ -29,6 +30,7 @@ class RoomFile {
     this.isFolder = false,
     this.parentId,
     this.addedByName,
+    this.isOwnedByMe = false,
   });
 }
 
@@ -317,7 +319,7 @@ class GoogleDriveRoomService {
     final query = "'$targetId' in parents and trashed = false and name != '.chat.json' and name != '.members.json'";
     
     try {
-      final fileList = await api.files.list(q: query, $fields: 'files(id, name, webViewLink, mimeType, createdTime)');
+      final fileList = await api.files.list(q: query, $fields: 'files(id, name, webViewLink, mimeType, createdTime, ownedByMe)');
       final List<RoomFile> roomFiles = [];
       
       if (fileList.files != null) {
@@ -332,6 +334,7 @@ class GoogleDriveRoomService {
             isFolder: isFolder,
             parentId: parentId,
             addedByName: 'Unknown',
+            isOwnedByMe: f.ownedByMe ?? false,
           ));
         }
       }
