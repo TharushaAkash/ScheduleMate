@@ -170,7 +170,6 @@ class _AssignmentsScreenState extends State<AssignmentsScreen>
         title: Row(
           crossAxisAlignment: CrossAxisAlignment.end,
           children: [
-            // Left: title + subtitle
             Expanded(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.end,
@@ -186,15 +185,14 @@ class _AssignmentsScreenState extends State<AssignmentsScreen>
                 ],
               ),
             ),
-            // Right: SVG icon
             SvgPicture.string(
               '''<svg viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
-                <rect x="10" y="14" width="28" height="30" rx="5" fill="#6C5CE7" fill-opacity="0.15" stroke="#6C5CE7" stroke-width="1.5"/>
-                <rect x="18" y="9" width="12" height="10" rx="4" fill="#6C5CE7" fill-opacity="0.3" stroke="#6C5CE7" stroke-width="1.5"/>
-                <circle cx="24" cy="14" r="1.5" fill="#09090E" stroke="#6C5CE7" stroke-width="1.5"/>
-                <line x1="15" y1="26" x2="33" y2="26" stroke="#6C5CE7" stroke-width="1.5" stroke-linecap="round"/>
-                <line x1="15" y1="32" x2="33" y2="32" stroke="#6C5CE7" stroke-width="1.5" stroke-linecap="round"/>
-                <line x1="15" y1="38" x2="24" y2="38" stroke="#6C5CE7" stroke-width="1.5" stroke-linecap="round"/>
+                <rect x="10" y="14" width="28" height="30" rx="5" fill="#7C5CFF" fill-opacity="0.15" stroke="#7C5CFF" stroke-width="1.5"/>
+                <rect x="18" y="9" width="12" height="10" rx="4" fill="#7C5CFF" fill-opacity="0.3" stroke="#7C5CFF" stroke-width="1.5"/>
+                <circle cx="24" cy="14" r="1.5" fill="#0F1028" stroke="#7C5CFF" stroke-width="1.5"/>
+                <line x1="15" y1="26" x2="33" y2="26" stroke="#7C5CFF" stroke-width="1.5" stroke-linecap="round"/>
+                <line x1="15" y1="32" x2="33" y2="32" stroke="#7C5CFF" stroke-width="1.5" stroke-linecap="round"/>
+                <line x1="15" y1="38" x2="24" y2="38" stroke="#7C5CFF" stroke-width="1.5" stroke-linecap="round"/>
               </svg>''',
               width: 36, height: 36,
             ),
@@ -260,11 +258,10 @@ class _AssignmentsScreenState extends State<AssignmentsScreen>
               const SizedBox(height: 8),
               Text('Tap + to add your first project', style: GoogleFonts.poppins(fontSize: 14, color: _textSecondary)),
               const SizedBox(height: 32),
-              // SVG dashed arrow pointing down toward FAB
               SvgPicture.string(
                 '''<svg width="60" height="60" viewBox="0 0 60 60" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M30 10 Q30 35 30 45" stroke="#6C5CE7" stroke-opacity="0.5" stroke-width="2" stroke-dasharray="4 3" stroke-linecap="round"/>
-                  <path d="M22 37 L30 47 L38 37" stroke="#6C5CE7" stroke-opacity="0.7" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+                  <path d="M30 10 Q30 35 30 45" stroke="#7C5CFF" stroke-opacity="0.5" stroke-width="2" stroke-dasharray="4 3" stroke-linecap="round"/>
+                  <path d="M22 37 L30 47 L38 37" stroke="#7C5CFF" stroke-opacity="0.7" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
                 </svg>''',
                 width: 50, height: 50,
               ),
@@ -277,7 +274,7 @@ class _AssignmentsScreenState extends State<AssignmentsScreen>
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-//  ASSIGNMENT CARD
+//  ASSIGNMENT CARD  — Premium redesign
 // ═══════════════════════════════════════════════════════════════════════════
 class _AssignmentCard extends StatelessWidget {
   final Assignment assignment;
@@ -285,9 +282,12 @@ class _AssignmentCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final nm = assignment.nextMilestone;
+    final nm       = assignment.nextMilestone;
+    final progress = assignment.progress;
+    final total    = assignment.milestones.length;
+    final doneC    = assignment.milestones.where((m) => m.isCompleted).length;
+    bool urgent    = false;
     Color accent;
-    bool urgent = false;
 
     if (assignment.isFullyCompleted) {
       accent = _teal;
@@ -295,181 +295,216 @@ class _AssignmentCard extends StatelessWidget {
       accent = _secondary;
     } else {
       final h = nm.deadline.difference(DateTime.now()).inHours;
-      if (h < 0) {
-        accent = _danger; urgent = true;
-      } else if (h <= 24) {
-        accent = _danger; urgent = true;
-      } else if (h <= 72) {
-        accent = _warning;
-      } else {
-        accent = _secondary;
-      }
+      if (h < 0)        { accent = _danger;  urgent = true; }
+      else if (h <= 24) { accent = _danger;  urgent = true; }
+      else if (h <= 72) { accent = _warning; }
+      else              { accent = _secondary; }
     }
 
-    final progress = assignment.progress;
+    final String statusLabel = assignment.isFullyCompleted
+        ? 'Completed' : urgent ? 'Urgent' : 'Active';
 
     return Container(
-      margin: const EdgeInsets.only(bottom: 16),
+      margin: const EdgeInsets.only(bottom: 14),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(24),
+        borderRadius: BorderRadius.circular(20),
         boxShadow: [
-          BoxShadow(color: accent.withOpacity(0.12), blurRadius: 24, spreadRadius: 0, offset: const Offset(0, 8)),
+          BoxShadow(color: accent.withOpacity(0.22), blurRadius: 30, offset: const Offset(0, 10)),
+          BoxShadow(color: Colors.black.withOpacity(0.4), blurRadius: 10, offset: const Offset(0, 4)),
         ],
       ),
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(24),
+        borderRadius: BorderRadius.circular(20),
         child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
-          child: Container(
-            decoration: BoxDecoration(
-              color: _surfaceColor.withOpacity(0.92),
-              borderRadius: BorderRadius.circular(24),
-              border: Border.all(color: accent.withOpacity(0.35), width: 1.5),
-            ),
-            child: Stack(
-              children: [
-                // ── Subtle SVG pattern inside card ──
-                Positioned.fill(
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(24),
-                    child: Opacity(
-                      opacity: 0.3,
-                      child: SvgPicture.string(
-                        '''<svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
-                          <defs>
-                            <pattern id="p" width="20" height="20" patternUnits="userSpaceOnUse">
-                              <circle cx="10" cy="10" r="0.8" fill="#ffffff" fill-opacity="0.15"/>
-                            </pattern>
-                          </defs>
-                          <rect width="100%" height="100%" fill="url(#p)"/>
-                        </svg>''',
-                        fit: BoxFit.cover,
+          filter: ImageFilter.blur(sigmaX: 14, sigmaY: 14),
+          child: Material(
+            color: Colors.transparent,
+            child: InkWell(
+              borderRadius: BorderRadius.circular(20),
+              onTap: () => Navigator.push(context, MaterialPageRoute(
+                builder: (_) => AssignmentDetailsScreen(assignmentId: assignment.id),
+              )),
+              child: Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [
+                      _surfaceColor.withOpacity(0.95),
+                      _surfaceColor.withOpacity(0.78),
+                    ],
+                  ),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: accent.withOpacity(0.20), width: 1.2),
+                ),
+                child: IntrinsicHeight(
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      // ── Left gradient accent stripe ──
+                      Container(
+                        width: 4,
+                        decoration: BoxDecoration(
+                          borderRadius: const BorderRadius.only(
+                            topLeft: Radius.circular(20),
+                            bottomLeft: Radius.circular(20),
+                          ),
+                          gradient: LinearGradient(
+                            begin: Alignment.topCenter,
+                            end: Alignment.bottomCenter,
+                            colors: [accent, accent.withOpacity(0.2)],
+                          ),
+                        ),
                       ),
-                    ),
-                  ),
-                ),
-                // ── Glow corner accent ──
-                Positioned(
-                  top: -20, right: -20,
-                  child: Container(
-                    width: 80, height: 80,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: accent.withOpacity(0.15),
-                    ),
-                  ),
-                ),
-                // ── Main content ──
-                Material(
-                  color: Colors.transparent,
-                  child: InkWell(
-                    borderRadius: BorderRadius.circular(24),
-                    onTap: () => Navigator.push(context, MaterialPageRoute(
-                      builder: (_) => AssignmentDetailsScreen(assignmentId: assignment.id),
-                    )),
-                    child: Padding(
-                      padding: const EdgeInsets.all(20),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
+
+                      // ── Card body ──
+                      Expanded(
+                        child: Padding(
+                          padding: const EdgeInsets.fromLTRB(14, 14, 14, 12),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              // Module badge
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                                decoration: BoxDecoration(
-                                  color: accent.withOpacity(0.15),
-                                  borderRadius: BorderRadius.circular(20),
-                                  border: Border.all(color: accent.withOpacity(0.4)),
-                                ),
-                                child: Text(assignment.moduleCode,
-                                  style: GoogleFonts.poppins(fontSize: 10, fontWeight: FontWeight.w700, color: accent, letterSpacing: 0.5)),
-                              ),
-                              const Spacer(),
-                              // Status dot
-                              _statusBadge(urgent, assignment.isFullyCompleted, accent),
-                            ],
-                          ),
-                          const SizedBox(height: 12),
-                          Text(assignment.title,
-                            style: GoogleFonts.poppins(fontSize: 17, fontWeight: FontWeight.w700, color: _textPrimary, letterSpacing: -0.3),
-                            maxLines: 1, overflow: TextOverflow.ellipsis),
-                          const SizedBox(height: 4),
-                          Row(
-                            children: [
-                              SvgPicture.string(
-                                '''<svg viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                  <circle cx="8" cy="8" r="6.5" stroke="${_svgHex(urgent ? _danger : _textSecondary)}" stroke-width="1.3"/>
-                                  <path d="M8 5v3.5l2 1.5" stroke="${_svgHex(urgent ? _danger : _textSecondary)}" stroke-width="1.3" stroke-linecap="round"/>
-                                </svg>''',
-                                width: 14, height: 14,
-                              ),
-                              const SizedBox(width: 5),
-                              Expanded(
-                                child: Text(
-                                  nm != null ? 'Next: ${nm.title}' : 'All milestones done ✓',
-                                  style: GoogleFonts.poppins(fontSize: 12, color: urgent ? _danger : _textSecondary,
-                                    fontWeight: urgent ? FontWeight.w600 : FontWeight.normal),
-                                  maxLines: 1, overflow: TextOverflow.ellipsis,
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 14),
-                          // Progress bar with label
-                          Row(
-                            children: [
-                              Expanded(
-                                child: ClipRRect(
-                                  borderRadius: BorderRadius.circular(8),
-                                  child: LinearProgressIndicator(
-                                    value: progress,
-                                    minHeight: 6,
-                                    backgroundColor: Colors.white.withOpacity(0.07),
-                                    valueColor: AlwaysStoppedAnimation<Color>(accent),
+
+                              // ── Row 1: module badge + status pill ──
+                              Row(
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                    decoration: BoxDecoration(
+                                      color: accent.withOpacity(0.12),
+                                      borderRadius: BorderRadius.circular(7),
+                                      border: Border.all(color: accent.withOpacity(0.28)),
+                                    ),
+                                    child: Text(assignment.moduleCode,
+                                      style: GoogleFonts.poppins(
+                                        fontSize: 10, fontWeight: FontWeight.w800,
+                                        color: accent, letterSpacing: 0.8)),
                                   ),
-                                ),
+                                  const Spacer(),
+                                  // Status pill
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                    decoration: BoxDecoration(
+                                      color: accent.withOpacity(0.10),
+                                      borderRadius: BorderRadius.circular(20),
+                                      border: Border.all(color: accent.withOpacity(0.22)),
+                                    ),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Container(
+                                          width: 5, height: 5,
+                                          decoration: BoxDecoration(
+                                            shape: BoxShape.circle, color: accent,
+                                            boxShadow: [BoxShadow(color: accent.withOpacity(0.9), blurRadius: 5)],
+                                          ),
+                                        ),
+                                        const SizedBox(width: 5),
+                                        Text(statusLabel,
+                                          style: GoogleFonts.poppins(
+                                            fontSize: 9.5, fontWeight: FontWeight.w700, color: accent)),
+                                      ],
+                                    ),
+                                  ),
+                                ],
                               ),
-                              const SizedBox(width: 10),
-                              Text('${(progress * 100).toInt()}%',
-                                style: GoogleFonts.poppins(fontSize: 11, fontWeight: FontWeight.w700, color: accent)),
+
+                              const SizedBox(height: 9),
+
+                              // ── Title ──
+                              Text(assignment.title,
+                                style: GoogleFonts.poppins(
+                                  fontSize: 15.5, fontWeight: FontWeight.w800,
+                                  color: _textPrimary, letterSpacing: -0.4, height: 1.2),
+                                maxLines: 1, overflow: TextOverflow.ellipsis),
+
+                              const SizedBox(height: 5),
+
+                              // ── Next milestone + count ──
+                              Row(
+                                children: [
+                                  SvgPicture.string(
+                                    '''<svg viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                      <circle cx="7" cy="7" r="5.5" stroke="${_svgHex(urgent ? _danger : _textSecondary)}" stroke-width="1.2"/>
+                                      <path d="M7 4.5v2.8l1.8 1.1" stroke="${_svgHex(urgent ? _danger : _textSecondary)}" stroke-width="1.2" stroke-linecap="round"/>
+                                    </svg>''',
+                                    width: 13, height: 13,
+                                  ),
+                                  const SizedBox(width: 5),
+                                  Expanded(
+                                    child: Text(
+                                      nm != null ? 'Next: ${nm.title}' : 'All milestones done ✓',
+                                      style: GoogleFonts.poppins(
+                                        fontSize: 11, color: urgent ? _danger : _textSecondary,
+                                        fontWeight: urgent ? FontWeight.w600 : FontWeight.w400),
+                                      maxLines: 1, overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                                    decoration: BoxDecoration(
+                                      color: Colors.white.withOpacity(0.05),
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    child: Text('$doneC / $total',
+                                      style: GoogleFonts.poppins(
+                                        fontSize: 9.5, fontWeight: FontWeight.w600,
+                                        color: _textSecondary)),
+                                  ),
+                                ],
+                              ),
+
+                              const SizedBox(height: 12),
+
+                              // ── Glowing gradient progress track ──
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: Stack(
+                                      children: [
+                                        Container(
+                                          height: 6,
+                                          decoration: BoxDecoration(
+                                            color: Colors.white.withOpacity(0.07),
+                                            borderRadius: BorderRadius.circular(10),
+                                          ),
+                                        ),
+                                        FractionallySizedBox(
+                                          widthFactor: progress.clamp(0.0, 1.0),
+                                          child: Container(
+                                            height: 6,
+                                            decoration: BoxDecoration(
+                                              gradient: LinearGradient(
+                                                colors: [accent.withOpacity(0.6), accent],
+                                              ),
+                                              borderRadius: BorderRadius.circular(10),
+                                              boxShadow: [BoxShadow(color: accent.withOpacity(0.55), blurRadius: 8)],
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  const SizedBox(width: 11),
+                                  Text('${(progress * 100).toInt()}%',
+                                    style: GoogleFonts.poppins(
+                                      fontSize: 12.5, fontWeight: FontWeight.w900,
+                                      color: accent,
+                                      shadows: [Shadow(color: accent.withOpacity(0.7), blurRadius: 8)],
+                                    )),
+                                ],
+                              ),
                             ],
                           ),
-                        ],
+                        ),
                       ),
-                    ),
+                    ],
                   ),
                 ),
-              ],
+              ),
             ),
           ),
         ),
-      ),
-    );
-  }
-
-  Widget _statusBadge(bool urgent, bool done, Color accent) {
-    String label;
-    if (done) {
-      label = 'Done';
-    } else if (urgent) {
-      label = 'Urgent';
-    } else {
-      label = 'Active';
-    }
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-      decoration: BoxDecoration(
-        color: accent.withOpacity(0.12),
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(width: 6, height: 6, decoration: BoxDecoration(shape: BoxShape.circle, color: accent)),
-          const SizedBox(width: 5),
-          Text(label, style: GoogleFonts.poppins(fontSize: 10, fontWeight: FontWeight.w700, color: accent)),
-        ],
       ),
     );
   }
