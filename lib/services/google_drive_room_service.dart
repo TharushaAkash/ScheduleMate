@@ -416,7 +416,16 @@ class GoogleDriveRoomService {
     final api = await _getDriveApi();
     if (api == null) return;
     try {
-      await api.files.delete(file.id);
+      if (file.isOwnedByMe) {
+        await api.files.delete(file.id);
+      } else {
+        final targetParentId = file.parentId ?? roomId;
+        await api.files.update(
+          drive.File(),
+          file.id,
+          removeParents: targetParentId,
+        );
+      }
     } catch (e) {
       debugPrint('GoogleDriveRoomService.deleteFile error: $e');
     }
@@ -622,7 +631,10 @@ class GoogleDriveRoomService {
     try {
       final chatFile = await _getChatFile(api, roomId);
       if (chatFile != null && chatFile.id != null) {
-        await api.files.delete(chatFile.id!);
+        final jsonStr = jsonEncode([]);
+        final bytes = utf8.encode(jsonStr);
+        final uploadMedia = drive.Media(Stream.value(bytes), bytes.length);
+        await api.files.update(drive.File(), chatFile.id!, uploadMedia: uploadMedia);
       }
       return true;
     } catch (e) {
