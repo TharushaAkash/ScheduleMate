@@ -155,13 +155,42 @@ class AssignmentDetailsScreen extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Progress Bar
+                      // Stats Row
+                      Builder(
+                        builder: (context) {
+                          final total = assignment.milestones.length;
+                          final completed = assignment.milestones.where((m) => m.isCompleted).length;
+                          final overdue = assignment.milestones.where((m) => !m.isCompleted && m.deadline.isBefore(DateTime.now())).length;
+                          final inProgress = total - completed - overdue;
+                          
+                          return Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              _buildStatCard('Total', total, primaryAccent),
+                              _buildStatCard('Completed', completed, successColor),
+                              _buildStatCard('In Progress', inProgress, const Color(0xFFFFB020)),
+                              _buildStatCard('Overdue', overdue, const Color(0xFFFF5C74)),
+                            ],
+                          );
+                        }
+                      ),
+                      
+                      const SizedBox(height: 24),
+                      
+                      // Progress Bar & Project Dates
                       Container(
                         padding: const EdgeInsets.all(20),
                         decoration: BoxDecoration(
                           color: surfaceColor,
-                          borderRadius: BorderRadius.circular(20),
+                          borderRadius: BorderRadius.circular(24),
                           border: Border.all(color: Colors.white.withOpacity(0.05)),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.2),
+                              blurRadius: 20,
+                              offset: const Offset(0, 10),
+                            ),
+                          ],
                         ),
                         child: Column(
                           children: [
@@ -171,30 +200,93 @@ class AssignmentDetailsScreen extends StatelessWidget {
                                 Text(
                                   'Overall Progress',
                                   style: GoogleFonts.poppins(
-                                    color: textSecondary,
+                                    color: textPrimary,
+                                    fontSize: 16,
                                     fontWeight: FontWeight.w600,
                                   ),
                                 ),
-                                Text(
-                                  '${(assignment.progress * 100).toInt()}%',
-                                  style: GoogleFonts.poppins(
-                                    color: assignment.isFullyCompleted ? successColor : primaryAccent,
-                                    fontWeight: FontWeight.bold,
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                                  decoration: BoxDecoration(
+                                    color: (assignment.isFullyCompleted ? successColor : primaryAccent).withOpacity(0.15),
+                                    borderRadius: BorderRadius.circular(20),
+                                  ),
+                                  child: Text(
+                                    '${(assignment.progress * 100).toInt()}%',
+                                    style: GoogleFonts.poppins(
+                                      color: assignment.isFullyCompleted ? successColor : primaryAccent,
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 14,
+                                    ),
                                   ),
                                 ),
                               ],
                             ),
-                            const SizedBox(height: 12),
+                            const SizedBox(height: 16),
                             ClipRRect(
                               borderRadius: BorderRadius.circular(10),
                               child: LinearProgressIndicator(
                                 value: assignment.progress,
-                                minHeight: 8,
+                                minHeight: 10,
                                 backgroundColor: bgColor,
                                 valueColor: AlwaysStoppedAnimation<Color>(
                                   assignment.isFullyCompleted ? successColor : primaryAccent,
                                 ),
                               ),
+                            ),
+                            const SizedBox(height: 20),
+                            Divider(color: Colors.white.withOpacity(0.05)),
+                            const SizedBox(height: 16),
+                            Builder(
+                              builder: (context) {
+                                DateTime? endDate;
+                                if (assignment.milestones.isNotEmpty) {
+                                  endDate = assignment.milestones.map((e) => e.deadline).reduce((a, b) => a.isAfter(b) ? a : b);
+                                }
+                                
+                                String timeLeft = 'N/A';
+                                Color timeColor = textSecondary;
+                                if (endDate != null) {
+                                  if (assignment.isFullyCompleted) {
+                                    timeLeft = 'Completed';
+                                    timeColor = successColor;
+                                  } else {
+                                    final diff = endDate.difference(DateTime.now());
+                                    if (diff.isNegative) {
+                                      timeLeft = 'Deadline Passed';
+                                      timeColor = const Color(0xFFFF5C74);
+                                    } else {
+                                      timeLeft = '${diff.inDays}d ${diff.inHours % 24}h remaining';
+                                      timeColor = diff.inDays < 3 ? const Color(0xFFFFB020) : primaryAccent;
+                                    }
+                                  }
+                                }
+
+                                return Row(
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    _buildDateInfo('Start Date', assignment.createdAt),
+                                    Container(width: 1, height: 30, color: Colors.white.withOpacity(0.1)),
+                                    _buildDateInfo('End Date', endDate),
+                                    Container(width: 1, height: 30, color: Colors.white.withOpacity(0.1)),
+                                    Column(
+                                      crossAxisAlignment: CrossAxisAlignment.end,
+                                      children: [
+                                        Text('Time Left', style: GoogleFonts.poppins(fontSize: 10, color: textSecondary)),
+                                        const SizedBox(height: 4),
+                                        Text(
+                                          timeLeft,
+                                          style: GoogleFonts.poppins(
+                                            fontSize: 11,
+                                            fontWeight: FontWeight.w600,
+                                            color: timeColor,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ],
+                                );
+                              }
                             ),
                           ],
                         ),
@@ -206,8 +298,9 @@ class AssignmentDetailsScreen extends StatelessWidget {
                         'Milestones',
                         style: GoogleFonts.poppins(
                           color: textPrimary,
-                          fontSize: 18,
-                          fontWeight: FontWeight.w600,
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: -0.5,
                         ),
                       ),
                       const SizedBox(height: 16),
@@ -278,10 +371,14 @@ class AssignmentDetailsScreen extends StatelessWidget {
                                 child: Container(
                                   padding: const EdgeInsets.all(16),
                                   decoration: BoxDecoration(
-                                    color: surfaceColor,
+                                    color: m.isCompleted
+                                        ? successColor.withOpacity(0.05)
+                                        : (isOverdue ? Colors.redAccent.withOpacity(0.05) : surfaceColor),
                                     borderRadius: BorderRadius.circular(16),
                                     border: Border.all(
-                                      color: isOverdue ? Colors.redAccent.withOpacity(0.3) : Colors.white.withOpacity(0.05),
+                                      color: m.isCompleted
+                                          ? successColor.withOpacity(0.3)
+                                          : (isOverdue ? Colors.redAccent.withOpacity(0.4) : primaryAccent.withOpacity(0.2)),
                                     ),
                                   ),
                                   child: Column(
@@ -290,7 +387,7 @@ class AssignmentDetailsScreen extends StatelessWidget {
                                       Text(
                                         m.title,
                                         style: GoogleFonts.poppins(
-                                          color: m.isCompleted ? textSecondary : textPrimary,
+                                          color: m.isCompleted ? successColor : (isOverdue ? Colors.redAccent : textPrimary),
                                           fontSize: 16,
                                           fontWeight: FontWeight.w600,
                                           decoration: m.isCompleted ? TextDecoration.lineThrough : null,
@@ -302,13 +399,13 @@ class AssignmentDetailsScreen extends StatelessWidget {
                                           Icon(
                                             Icons.calendar_month_rounded,
                                             size: 14,
-                                            color: isOverdue ? Colors.redAccent : textSecondary,
+                                            color: m.isCompleted ? successColor.withOpacity(0.7) : (isOverdue ? Colors.redAccent : textSecondary),
                                           ),
                                           const SizedBox(width: 4),
                                           Text(
                                             '${m.deadline.day}/${m.deadline.month}/${m.deadline.year} ${m.deadline.hour.toString().padLeft(2, '0')}:${m.deadline.minute.toString().padLeft(2, '0')}',
                                             style: GoogleFonts.poppins(
-                                              color: isOverdue ? Colors.redAccent : textSecondary,
+                                              color: m.isCompleted ? successColor.withOpacity(0.7) : (isOverdue ? Colors.redAccent : textSecondary),
                                               fontSize: 12,
                                               fontWeight: isOverdue ? FontWeight.w600 : FontWeight.normal,
                                             ),
@@ -333,6 +430,65 @@ class AssignmentDetailsScreen extends StatelessWidget {
           );
         },
       ),
+    );
+  }
+
+  Widget _buildStatCard(String title, int count, Color color) {
+    return Container(
+      width: 75,
+      padding: const EdgeInsets.symmetric(vertical: 16),
+      decoration: BoxDecoration(
+        color: const Color(0xFF161622),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: color.withOpacity(0.2)),
+        boxShadow: [
+          BoxShadow(
+            color: color.withOpacity(0.05),
+            blurRadius: 10,
+            spreadRadius: 2,
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          Text(
+            count.toString(),
+            style: GoogleFonts.poppins(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+              color: color,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            title,
+            style: GoogleFonts.poppins(
+              fontSize: 9,
+              color: const Color(0xFF8A8D9F),
+              fontWeight: FontWeight.w600,
+            ),
+            textAlign: TextAlign.center,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDateInfo(String label, DateTime? date) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(label, style: GoogleFonts.poppins(fontSize: 10, color: const Color(0xFF8A8D9F))),
+        const SizedBox(height: 4),
+        Text(
+          date != null ? '${date.day}/${date.month}/${date.year}' : 'N/A',
+          style: GoogleFonts.poppins(
+            fontSize: 12,
+            fontWeight: FontWeight.w600,
+            color: Colors.white,
+          ),
+        ),
+      ],
     );
   }
 }

@@ -6,7 +6,7 @@ import 'package:uuid/uuid.dart';
 
 import '../models/assignment_model.dart';
 import '../providers/assignment_provider.dart';
-import '../providers/gpa_provider.dart';
+import '../providers/timetable_provider.dart';
 
 class AddAssignmentScreen extends StatefulWidget {
   final Assignment? existingAssignment;
@@ -157,14 +157,12 @@ class _AddAssignmentScreenState extends State<AddAssignmentScreen> {
     const textPrimary = Colors.white;
     const textSecondary = Color(0xFF8A8D9F);
 
-    // Extract modules from GPA Provider to link assignments to real modules
-    final gpaProvider = Provider.of<GpaProvider>(context);
+    // Extract modules from TimetableProvider to link assignments to active timetable classes
+    final timetableProvider = Provider.of<TimetableProvider>(context);
     List<String> moduleCodes = [];
-    for (var sem in gpaProvider.semesters) {
-      for (var mod in sem.courses) {
-        if (!moduleCodes.contains(mod.moduleCode)) {
-          moduleCodes.add(mod.moduleCode);
-        }
+    for (var entry in timetableProvider.currentTimetable) {
+      if (entry.moduleCode.isNotEmpty && !moduleCodes.contains(entry.moduleCode)) {
+        moduleCodes.add(entry.moduleCode);
       }
     }
     // Also allow some defaults just in case
