@@ -31,7 +31,7 @@ class _RoomDetailsScreenState extends State<RoomDetailsScreen> {
   final _chatCtrl = TextEditingController();
   final ScrollController _chatScrollCtrl = ScrollController();
   Stream<List<RoomMessage>>? _chatStream;
-  Stream<List<RoomFile>>? _filesStream;
+  Future<List<RoomFile>>? _filesFuture;
   
   final List<RoomMessage> _optimisticMessages = [];
 
@@ -52,7 +52,7 @@ class _RoomDetailsScreenState extends State<RoomDetailsScreen> {
 
   void _refreshFiles() {
     setState(() {
-      _filesStream = _service.filesStream(widget.room.roomId, parentId: _currentFolderId);
+      _filesFuture = _service.getFiles(widget.room.roomId, parentId: _currentFolderId);
     });
   }
 
@@ -520,6 +520,9 @@ class _RoomDetailsScreenState extends State<RoomDetailsScreen> {
     return GestureDetector(
       onTap: () {
         setState(() {
+          if (i == 1 && _tab != 1) {
+            _filesFuture = _service.getFiles(widget.room.roomId, parentId: _currentFolderId);
+          }
           if (i == 3 && _tab != 3) {
             _chatStream = _service.messagesStream(widget.room.roomId);
           }
@@ -653,8 +656,8 @@ class _RoomDetailsScreenState extends State<RoomDetailsScreen> {
         ]),
       ),
       Expanded(
-        child: StreamBuilder<List<RoomFile>>(
-          stream: _filesStream,
+        child: FutureBuilder<List<RoomFile>>(
+          future: _filesFuture,
           builder: (ctx, snap) {
             if (snap.connectionState == ConnectionState.waiting) {
               return const Center(child: CircularProgressIndicator(color: _accent));

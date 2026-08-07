@@ -308,11 +308,10 @@ class GoogleDriveRoomService {
     }
   }
 
-  Stream<List<RoomFile>> filesStream(String roomId, {String? parentId}) async* {
+  Future<List<RoomFile>> getFiles(String roomId, {String? parentId}) async {
     final api = await _getDriveApi();
     if (api == null) {
-      yield [];
-      return;
+      return [];
     }
     
     final targetId = parentId ?? roomId;
@@ -345,10 +344,10 @@ class GoogleDriveRoomService {
         return a.name.compareTo(b.name);
       });
       
-      yield roomFiles;
+      return roomFiles;
     } catch (e) {
-      debugPrint('GoogleDriveRoomService.filesStream error: $e');
-      yield [];
+      debugPrint('GoogleDriveRoomService.getFiles error: $e');
+      return [];
     }
   }
 
