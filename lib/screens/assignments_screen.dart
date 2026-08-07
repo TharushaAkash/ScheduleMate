@@ -8,13 +8,14 @@ import '../models/assignment_model.dart';
 import 'add_assignment_screen.dart';
 import 'assignment_details_screen.dart';
 
-// ── Color Palette — matches TimetableViewScreen ────────────────────────────
-const _bgColor       = Color(0xFF1E1E2E);   // same as timetable bg
-const _surfaceColor  = Color(0xFF252535);   // same as timetable card bg
-const _primary       = Color(0xFF6C63FF);   // same as timetable primary/Lecture
-const _teal          = Color(0xFF00D4AA);   // same as timetable Tutorial
-const _danger        = Color(0xFFFF5C74);   // overdue red
-const _warning       = Color(0xFFFFB347);   // same as timetable Workshop
+// ── Color Palette — same as TimetableUploadScreen._Palette ──────────────
+const _bgColor       = Color(0xFF0F1028);  // _Palette.bgDark
+const _surfaceColor  = Color(0xFF1A1B3A);
+const _primary       = Color(0xFF7C5CFF);  // _Palette.primary
+const _secondary     = Color(0xFF5B8CFF);  // _Palette.secondary
+const _teal          = Color(0xFF00D4AA);  // _Palette.accent
+const _danger        = Color(0xFFFF5C74);
+const _warning       = Color(0xFFFFB347);
 const _textPrimary   = Colors.white;
 const _textSecondary = Color(0xFF8A8D9F);
 
@@ -84,10 +85,9 @@ class _AssignmentsScreenState extends State<AssignmentsScreen>
               child: SvgPicture.string(_bgPatternSvg, fit: BoxFit.cover),
             ),
           ),
-          // ── Glowing blobs — timetable-matching colors
-          _blob(top: -160, left: -100, size: 380, color: const Color(0xFF2D1B69).withOpacity(0.5), blur: 130),
-          _blob(bottom: 40, right: -130, size: 320, color: const Color(0xFF004D40).withOpacity(0.3), blur: 110),
-          _blob(top: 250, right: 0, size: 200, color: const Color(0xFF4ECDC4).withOpacity(0.08), blur: 90),
+          // ── Glow orbs — exact same as TimetableUploadScreen
+          _blob(top: -120, right: -100, size: 320, color: _primary.withOpacity(0.16), blur: 150),
+          _blob(top: 140, left: -140, size: 260, color: _secondary.withOpacity(0.10), blur: 150),
 
           Consumer<AssignmentProvider>(
             builder: (context, provider, _) {
