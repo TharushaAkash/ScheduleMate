@@ -150,12 +150,24 @@ class AssignmentDetailsScreen extends StatelessWidget {
                         top: 20,
                         child: Transform.rotate(
                           angle: 0.2,
-                          child: Image.asset(
-                            'assets/3d_task.png',
-                            width: 200,
-                            height: 200,
-                            opacity: const AlwaysStoppedAnimation(0.9),
-                            errorBuilder: (c, e, s) => const SizedBox(),
+                          child: Opacity(
+                            opacity: 0.8,
+                            child: SvgPicture.string(
+                              '''<svg width="200" height="200" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                  <rect x="50" y="40" width="100" height="130" rx="15" fill="#6C5CE7" fill-opacity="0.1" stroke="#6C5CE7" stroke-width="2"/>
+                                  <rect x="75" y="25" width="50" height="30" rx="10" fill="#6C5CE7" fill-opacity="0.3" stroke="#6C5CE7" stroke-width="2"/>
+                                  <circle cx="100" cy="40" r="5" fill="#09090E" stroke="#6C5CE7" stroke-width="2"/>
+                                  
+                                  <path d="M 70 80 L 130 80" stroke="#6C5CE7" stroke-width="2" stroke-linecap="round"/>
+                                  <path d="M 70 100 L 130 100" stroke="#6C5CE7" stroke-width="2" stroke-linecap="round"/>
+                                  <path d="M 70 120 L 100 120" stroke="#6C5CE7" stroke-width="2" stroke-linecap="round"/>
+                                  
+                                  <circle cx="70" cy="145" r="10" fill="#22D3A6" fill-opacity="0.2" stroke="#22D3A6" stroke-width="2"/>
+                                  <path d="M 65 145 L 68 148 L 75 140" stroke="#22D3A6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                </svg>''',
+                              width: 180,
+                              height: 180,
+                            ),
                           ),
                         ),
                       ),
