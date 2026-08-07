@@ -292,7 +292,7 @@ class _AssignmentCard extends StatelessWidget {
     if (assignment.isFullyCompleted) {
       accent = _teal;
     } else if (nm == null) {
-      accent = _primary;
+      accent = _secondary;
     } else {
       final h = nm.deadline.difference(DateTime.now()).inHours;
       if (h < 0) {
@@ -302,7 +302,7 @@ class _AssignmentCard extends StatelessWidget {
       } else if (h <= 72) {
         accent = _warning;
       } else {
-        accent = _primary;
+        accent = _secondary;
       }
     }
 
