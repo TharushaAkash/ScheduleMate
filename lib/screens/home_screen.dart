@@ -7,6 +7,7 @@ import 'timetable_upload_screen.dart';
 import 'ca_marks_screen.dart';
 import 'profile_screen.dart';
 import 'rooms_screen.dart';
+import 'assignments_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -36,6 +37,7 @@ class _HomeScreenState extends State<HomeScreen> {
     _NavItem(Icons.school_rounded, Icons.school_rounded, 'GPA'),
     _NavItem(Icons.calendar_month_rounded, Icons.calendar_month_rounded, 'Timetable'),
     _NavItem(Icons.folder_shared_rounded, Icons.folder_shared_rounded, 'Rooms'),
+    _NavItem(Icons.assignment_rounded, Icons.assignment_rounded, 'Tasks'),
     _NavItem(Icons.description_rounded, Icons.description_rounded, 'CA Marks'),
     _NavItem(Icons.person_rounded, Icons.person_rounded, 'Profile'),
   ];
@@ -44,6 +46,7 @@ class _HomeScreenState extends State<HomeScreen> {
     GpaScreen(),
     TimetableUploadScreen(),
     RoomsScreen(),
+    AssignmentsScreen(),
     CaMarksScreen(),
     ProfileScreen(),
   ];

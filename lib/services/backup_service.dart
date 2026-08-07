@@ -151,6 +151,7 @@ class BackupService extends ChangeNotifier {
       'student_id': prefs.getString('student_id') ?? '',
       'student_name': prefs.getString('student_name') ?? '',
       'saved_ca_marks': prefs.getString('saved_ca_marks') ?? '',
+      'assignments_data': prefs.getString('assignments_data') ?? '',
     };
     final prefsJson = jsonEncode(prefsData);
     
@@ -236,6 +237,9 @@ class BackupService extends ChangeNotifier {
       }
       if (prefsData['saved_ca_marks'] != null && prefsData['saved_ca_marks'].toString().isNotEmpty) {
         await prefs.setString('saved_ca_marks', prefsData['saved_ca_marks']);
+      }
+      if (prefsData['assignments_data'] != null && prefsData['assignments_data'].toString().isNotEmpty) {
+        await prefs.setString('assignments_data', prefsData['assignments_data']);
       }
     }
 

@@ -20,6 +20,8 @@ class NotificationService {
   static const _announcementChannelName = 'LMS Announcements';
   static const _fcmChannelId = 'fcm_updates';
   static const _fcmChannelName = 'App Updates';
+  static const _assignmentChannelId = 'assignment_reminders';
+  static const _assignmentChannelName = 'Assignment Reminders';
 
   Future<void> init() async {
     tz_data.initializeTimeZones();
@@ -78,6 +80,14 @@ class NotificationService {
       importance: Importance.high,
     );
     await androidImpl?.createNotificationChannel(fcmChannel);
+
+    const assignmentChannel = AndroidNotificationChannel(
+      _assignmentChannelId,
+      _assignmentChannelName,
+      description: 'Reminders for assignment milestones',
+      importance: Importance.high,
+    );
+    await androidImpl?.createNotificationChannel(assignmentChannel);
 
     await _plugin
         .resolvePlatformSpecificImplementation<
@@ -278,6 +288,44 @@ class NotificationService {
         iOS: DarwinNotificationDetails(),
       ),
     );
+  }
+
+  Future<void> scheduleAssignmentReminder(int id, String title, String body, DateTime deadline) async {
+    // Schedule exactly 24 hours before deadline
+    var reminderTime = tz.TZDateTime.from(deadline, tz.local).subtract(const Duration(hours: 24));
+    
+    // If 24 hours before is already in the past, schedule it 1 hour from now (or don't schedule if deadline passed)
+    final now = tz.TZDateTime.now(tz.local);
+    if (deadline.isBefore(DateTime.now())) return; // Deadline passed
+    if (reminderTime.isBefore(now)) {
+      // Less than 24 hours left, just warn them soon
+      reminderTime = now.add(const Duration(minutes: 15)); 
+    }
+
+    await _plugin.zonedSchedule(
+      id,
+      title,
+      body,
+      reminderTime,
+      const NotificationDetails(
+        android: AndroidNotificationDetails(
+          _assignmentChannelId,
+          _assignmentChannelName,
+          importance: Importance.high,
+          priority: Priority.high,
+          styleInformation: BigTextStyleInformation(''),
+        ),
+        iOS: DarwinNotificationDetails(),
+      ),
+      androidScheduleMode: await canScheduleExactAlarms()
+          ? AndroidScheduleMode.alarmClock
+          : AndroidScheduleMode.exactAllowWhileIdle,
+      uiLocalNotificationDateInterpretation: UILocalNotificationDateInterpretation.absoluteTime,
+    );
+  }
+  
+  Future<void> cancelNotification(int id) async {
+    await _plugin.cancel(id);
   }
 
 

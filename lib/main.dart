@@ -8,6 +8,7 @@ import 'providers/announcement_provider.dart';
 import 'providers/gpa_provider.dart';
 import 'providers/theme_provider.dart';
 import 'providers/timetable_provider.dart';
+import 'providers/assignment_provider.dart';
 import 'screens/auth_screen.dart';
 import 'services/notification_service.dart';
 import 'services/backup_service.dart';
@@ -90,6 +91,7 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => ThemeProvider()),
         ChangeNotifierProvider(create: (_) => AnnouncementProvider()),
         ChangeNotifierProvider(create: (_) => AppNotificationProvider()),
+        ChangeNotifierProvider(create: (_) => AssignmentProvider()),
         ChangeNotifierProvider.value(value: BackupService.instance),
       ],
       child: Consumer<ThemeProvider>(
