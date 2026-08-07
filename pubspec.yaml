@@ -56,6 +56,7 @@ dependencies:
   firebase_analytics: ^12.4.5
   google_fonts: ^6.2.1
   uuid: ^4.6.0
+  flutter_svg: ^2.3.0
 
 dev_dependencies:
   flutter_test:
@@ -74,4 +75,5 @@ flutter:
   assets:
     - assets/google_logo.png
     - assets/icon/app_icon.png
+    - assets/3d_task.png
     - readme-assets/app_icon.png

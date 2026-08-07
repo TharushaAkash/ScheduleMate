@@ -2,6 +2,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 
 import '../models/assignment_model.dart';
 import '../providers/assignment_provider.dart';
@@ -144,6 +145,20 @@ class AssignmentDetailsScreen extends StatelessWidget {
                           child: const SizedBox(),
                         ),
                       ),
+                      Positioned(
+                        right: -30,
+                        top: 20,
+                        child: Transform.rotate(
+                          angle: 0.2,
+                          child: Image.asset(
+                            'assets/3d_task.png',
+                            width: 200,
+                            height: 200,
+                            opacity: const AlwaysStoppedAnimation(0.9),
+                            errorBuilder: (c, e, s) => const SizedBox(),
+                          ),
+                        ),
+                      ),
                     ],
                   ),
                 ),
@@ -179,7 +194,6 @@ class AssignmentDetailsScreen extends StatelessWidget {
                       
                       // Progress Bar & Project Dates
                       Container(
-                        padding: const EdgeInsets.all(20),
                         decoration: BoxDecoration(
                           color: surfaceColor,
                           borderRadius: BorderRadius.circular(24),
@@ -192,7 +206,33 @@ class AssignmentDetailsScreen extends StatelessWidget {
                             ),
                           ],
                         ),
-                        child: Column(
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(24),
+                          child: Stack(
+                            children: [
+                              // Abstract SVG Pattern Background
+                              Positioned.fill(
+                                child: SvgPicture.string(
+                                  '''<svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
+                                      <defs>
+                                        <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+                                          <circle cx="20" cy="20" r="1" fill="#ffffff" fill-opacity="0.1"/>
+                                          <path d="M 40 0 L 0 40" fill="none" stroke="#ffffff" stroke-width="0.5" stroke-opacity="0.03"/>
+                                        </pattern>
+                                        <linearGradient id="fade" x1="0" y1="0" x2="0" y2="1">
+                                          <stop offset="0%" stop-color="#161622" stop-opacity="0.8"/>
+                                          <stop offset="100%" stop-color="#161622" stop-opacity="1"/>
+                                        </linearGradient>
+                                      </defs>
+                                      <rect width="100%" height="100%" fill="url(#grid)" />
+                                      <rect width="100%" height="100%" fill="url(#fade)" />
+                                    </svg>''',
+                                  fit: BoxFit.cover,
+                                ),
+                              ),
+                              Padding(
+                                padding: const EdgeInsets.all(20),
+                                child: Column(
                           children: [
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -291,9 +331,24 @@ class AssignmentDetailsScreen extends StatelessWidget {
                           ],
                         ),
                       ),
+                            ],
+                          ),
+                        ),
+                      ),
                       
-                      const SizedBox(height: 32),
-                      
+                    ],
+                  ),
+                ),
+              ),
+              
+              // Milestones Heading
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 24),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.flag_rounded, color: primaryAccent, size: 24),
+                      const SizedBox(width: 8),
                       Text(
                         'Milestones',
                         style: GoogleFonts.poppins(
@@ -303,12 +358,12 @@ class AssignmentDetailsScreen extends StatelessWidget {
                           letterSpacing: -0.5,
                         ),
                       ),
-                      const SizedBox(height: 16),
                     ],
                   ),
                 ),
               ),
-              
+              const SliverToBoxAdapter(child: SizedBox(height: 16)),
+
               // Milestones Timeline
               SliverPadding(
                 padding: const EdgeInsets.symmetric(horizontal: 24),
