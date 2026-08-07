@@ -65,71 +65,94 @@ class _AssignmentsScreenState extends State<AssignmentsScreen>
           ),
         ),
       ),
-      body: Consumer<AssignmentProvider>(
-        builder: (context, provider, child) {
-          final assignments = provider.sortedAssignments;
-          final pendingCount = assignments.where((a) => !a.isFullyCompleted).length;
-
-          return CustomScrollView(
-            physics: const BouncingScrollPhysics(),
-            slivers: [
-              SliverAppBar(
-                pinned: true,
-                expandedHeight: 160,
-                backgroundColor: bgColor,
-                surfaceTintColor: Colors.transparent,
-                flexibleSpace: FlexibleSpaceBar(
-                  titlePadding: const EdgeInsets.only(left: 24, bottom: 20, right: 24),
-                  title: Column(
-                    mainAxisAlignment: MainAxisAlignment.end,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Assignments',
-                        style: GoogleFonts.poppins(
-                          fontSize: 28,
-                          fontWeight: FontWeight.bold,
-                          color: textPrimary,
-                          letterSpacing: -0.5,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        pendingCount == 0
-                            ? 'All caught up! 🎉'
-                            : '$pendingCount tasks in progress',
-                        style: GoogleFonts.poppins(
-                          fontSize: 12,
-                          color: textSecondary,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ],
-                  ),
-                  background: Stack(
-                    children: [
-                      Positioned(
-                        top: -50,
-                        right: -50,
-                        child: Container(
-                          width: 200,
-                          height: 200,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: primaryAccent.withOpacity(0.15),
-                          ),
-                        ),
-                      ),
-                      Positioned.fill(
-                        child: BackdropFilter(
-                          filter: ImageFilter.blur(sigmaX: 50, sigmaY: 50),
-                          child: const SizedBox(),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
+      body: Stack(
+        children: [
+          // Animated / Glowing Background Blobs
+          Positioned(
+            top: -150,
+            left: -100,
+            child: Container(
+              width: 350,
+              height: 350,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: primaryAccent.withOpacity(0.15),
+                boxShadow: [
+                  BoxShadow(
+                    color: primaryAccent.withOpacity(0.2),
+                    blurRadius: 120,
+                    spreadRadius: 60,
+                  )
+                ],
               ),
+            ),
+          ),
+          Positioned(
+            bottom: 50,
+            right: -150,
+            child: Container(
+              width: 300,
+              height: 300,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: const Color(0xFF00D4AA).withOpacity(0.1),
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color(0xFF00D4AA).withOpacity(0.15),
+                    blurRadius: 100,
+                    spreadRadius: 50,
+                  )
+                ],
+              ),
+            ),
+          ),
+          Consumer<AssignmentProvider>(
+            builder: (context, provider, child) {
+              final assignments = provider.sortedAssignments;
+              final pendingCount =
+                  assignments.where((a) => !a.isFullyCompleted).length;
+
+              return CustomScrollView(
+                physics: const BouncingScrollPhysics(),
+                slivers: [
+                  // Modern Header
+                  SliverAppBar(
+                    backgroundColor: Colors.transparent,
+                    expandedHeight: 140,
+                    pinned: true,
+                    elevation: 0,
+                    flexibleSpace: FlexibleSpaceBar(
+                      titlePadding:
+                          const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                      title: Column(
+                        mainAxisAlignment: MainAxisAlignment.end,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Text(
+                            'Tasks',
+                            style: TextStyle(
+                              fontSize: 28,
+                              fontWeight: FontWeight.w900,
+                              letterSpacing: -1,
+                              color: Colors.white,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            pendingCount == 0
+                                ? 'All caught up! 🎉'
+                                : '$pendingCount tasks in progress',
+                            style: GoogleFonts.poppins(
+                              fontSize: 10,
+                              color: textSecondary,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
               if (assignments.isEmpty)
                 SliverFillRemaining(
                   hasScrollBody: false,
