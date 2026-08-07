@@ -1,8 +1,6 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
-import 'package:uuid/uuid.dart';
 
 import '../models/assignment_model.dart';
 import '../providers/assignment_provider.dart';
@@ -151,13 +149,16 @@ class _AddAssignmentScreenState extends State<AddAssignmentScreen> {
 
   @override
   Widget build(BuildContext context) {
-    const bgColor = Color(0xFF09090E);
-    const surfaceColor = Color(0xFF161622);
-    const primaryAccent = Color(0xFF6C5CE7);
-    const textPrimary = Colors.white;
+    // ── Modern Palette Matching Timetable ──
+    const bgColor       = Color(0xFF0F1028);
+    const surfaceColor  = Color(0xFF1A1B3A);
+    const primaryAccent = Color(0xFF7C5CFF);
+    const secondaryBlue = Color(0xFF5B8CFF);
+    const textPrimary   = Colors.white;
     const textSecondary = Color(0xFF8A8D9F);
+    const dangerRed     = Color(0xFFFF5C74);
 
-    // Extract modules from TimetableProvider to link assignments to active timetable classes
+    // Extract modules from TimetableProvider
     final timetableProvider = Provider.of<TimetableProvider>(context);
     List<String> moduleCodes = [];
     for (var entry in timetableProvider.currentTimetable) {
@@ -165,7 +166,6 @@ class _AddAssignmentScreenState extends State<AddAssignmentScreen> {
         moduleCodes.add(entry.moduleCode);
       }
     }
-    // Also allow some defaults just in case
     if (moduleCodes.isEmpty) moduleCodes = ['General', 'Other'];
     if (_selectedModule != null && !moduleCodes.contains(_selectedModule)) {
       moduleCodes.add(_selectedModule!);
@@ -173,6 +173,7 @@ class _AddAssignmentScreenState extends State<AddAssignmentScreen> {
 
     return Scaffold(
       backgroundColor: bgColor,
+      extendBodyBehindAppBar: true,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -181,238 +182,318 @@ class _AddAssignmentScreenState extends State<AddAssignmentScreen> {
           widget.existingAssignment != null ? 'Edit Task' : 'New Task',
           style: GoogleFonts.poppins(
             color: textPrimary,
-            fontWeight: FontWeight.w600,
+            fontWeight: FontWeight.w700,
+            letterSpacing: -0.5,
           ),
         ),
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: textPrimary),
+          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: textPrimary, size: 20),
           onPressed: () => Navigator.pop(context),
         ),
         actions: [
-          TextButton(
-            onPressed: _saveAssignment,
-            child: Text(
-              'Save',
-              style: GoogleFonts.poppins(
-                color: primaryAccent,
-                fontWeight: FontWeight.bold,
-                fontSize: 16,
+          Container(
+            margin: const EdgeInsets.only(right: 16, top: 8, bottom: 8),
+            child: Material(
+              color: Colors.transparent,
+              child: InkWell(
+                onTap: _saveAssignment,
+                borderRadius: BorderRadius.circular(12),
+                child: Ink(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(colors: [primaryAccent, primaryAccent.withOpacity(0.8)]),
+                    borderRadius: BorderRadius.circular(12),
+                    boxShadow: [BoxShadow(color: primaryAccent.withOpacity(0.4), blurRadius: 8, offset: const Offset(0, 2))],
+                  ),
+                  child: Center(
+                    child: Text(
+                      'Save',
+                      style: GoogleFonts.poppins(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w700,
+                        fontSize: 14,
+                      ),
+                    ),
+                  ),
+                ),
               ),
             ),
           ),
-          const SizedBox(width: 8),
         ],
       ),
-      body: Form(
-        key: _formKey,
-        child: CustomScrollView(
-          physics: const BouncingScrollPhysics(),
-          slivers: [
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.all(24),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Main Assignment Details
-                    Text(
-                      'Project Details',
-                      style: GoogleFonts.poppins(
-                        color: textPrimary,
-                        fontSize: 18,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    TextFormField(
-                      controller: _titleController,
-                      style: const TextStyle(color: textPrimary),
-                      decoration: InputDecoration(
-                        labelText: 'Assignment Title',
-                        labelStyle: const TextStyle(color: textSecondary),
-                        hintText: 'e.g., Final Year Project',
-                        hintStyle: TextStyle(color: textSecondary.withOpacity(0.5)),
-                        filled: true,
-                        fillColor: surfaceColor,
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(16),
-                          borderSide: BorderSide.none,
-                        ),
-                        prefixIcon: const Icon(Icons.assignment_outlined, color: textSecondary),
-                      ),
-                      validator: (val) => val == null || val.trim().isEmpty ? 'Required' : null,
-                    ),
-                    const SizedBox(height: 16),
-                    DropdownButtonFormField<String>(
-                      value: _selectedModule,
-                      dropdownColor: surfaceColor,
-                      style: const TextStyle(color: textPrimary),
-                      decoration: InputDecoration(
-                        labelText: 'Module Code',
-                        labelStyle: const TextStyle(color: textSecondary),
-                        filled: true,
-                        fillColor: surfaceColor,
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(16),
-                          borderSide: BorderSide.none,
-                        ),
-                        prefixIcon: const Icon(Icons.class_outlined, color: textSecondary),
-                      ),
-                      items: moduleCodes.map((code) {
-                        return DropdownMenuItem(
-                          value: code,
-                          child: Text(code),
-                        );
-                      }).toList(),
-                      onChanged: (val) => setState(() => _selectedModule = val),
-                    ),
+      body: Stack(
+        children: [
+          // ── Background Glow Orbs ──
+          Positioned(
+            top: -100, right: -100,
+            child: Container(
+              width: 320, height: 320,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: primaryAccent.withOpacity(0.16),
+                boxShadow: [BoxShadow(color: primaryAccent.withOpacity(0.16), blurRadius: 150)],
+              ),
+            ),
+          ),
+          Positioned(
+            top: 200, left: -140,
+            child: Container(
+              width: 260, height: 260,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: secondaryBlue.withOpacity(0.10),
+                boxShadow: [BoxShadow(color: secondaryBlue.withOpacity(0.10), blurRadius: 150)],
+              ),
+            ),
+          ),
 
-                    const SizedBox(height: 40),
-                    
-                    // Milestones Section
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          'Milestones',
-                          style: GoogleFonts.poppins(
-                            color: textPrimary,
-                            fontSize: 18,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                        GestureDetector(
-                          onTap: _addMilestone,
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                            decoration: BoxDecoration(
-                              color: primaryAccent.withOpacity(0.2),
-                              borderRadius: BorderRadius.circular(20),
+          SafeArea(
+            child: Form(
+              key: _formKey,
+              child: CustomScrollView(
+                physics: const BouncingScrollPhysics(),
+                slivers: [
+                  SliverToBoxAdapter(
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(24, 20, 24, 10),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Project Details',
+                            style: GoogleFonts.poppins(
+                              color: textPrimary,
+                              fontSize: 22,
+                              fontWeight: FontWeight.w800,
+                              letterSpacing: -0.5,
                             ),
-                            child: Row(
+                          ),
+                          const SizedBox(height: 20),
+                          
+                          // ── Title Input ──
+                          Container(
+                            decoration: BoxDecoration(
+                              color: surfaceColor.withOpacity(0.7),
+                              borderRadius: BorderRadius.circular(20),
+                              border: Border.all(color: Colors.white.withOpacity(0.08)),
+                            ),
+                            child: TextFormField(
+                              controller: _titleController,
+                              style: GoogleFonts.poppins(color: textPrimary, fontWeight: FontWeight.w500),
+                              decoration: InputDecoration(
+                                labelText: 'Assignment Title',
+                                labelStyle: GoogleFonts.poppins(color: textSecondary, fontSize: 14),
+                                hintText: 'e.g., Final Year Project',
+                                hintStyle: GoogleFonts.poppins(color: textSecondary.withOpacity(0.5)),
+                                border: InputBorder.none,
+                                contentPadding: const EdgeInsets.all(20),
+                                prefixIcon: const Icon(Icons.assignment_outlined, color: primaryAccent),
+                              ),
+                              validator: (val) => val == null || val.trim().isEmpty ? 'Required' : null,
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+                          
+                          // ── Module Selection ──
+                          Container(
+                            decoration: BoxDecoration(
+                              color: surfaceColor.withOpacity(0.7),
+                              borderRadius: BorderRadius.circular(20),
+                              border: Border.all(color: Colors.white.withOpacity(0.08)),
+                            ),
+                            child: DropdownButtonFormField<String>(
+                              value: _selectedModule,
+                              dropdownColor: surfaceColor,
+                              icon: const Icon(Icons.keyboard_arrow_down_rounded, color: textSecondary),
+                              style: GoogleFonts.poppins(color: textPrimary, fontWeight: FontWeight.w500),
+                              decoration: InputDecoration(
+                                labelText: 'Module Code',
+                                labelStyle: GoogleFonts.poppins(color: textSecondary, fontSize: 14),
+                                border: InputBorder.none,
+                                contentPadding: const EdgeInsets.all(20),
+                                prefixIcon: const Icon(Icons.class_outlined, color: primaryAccent),
+                              ),
+                              items: moduleCodes.map((code) {
+                                return DropdownMenuItem(
+                                  value: code,
+                                  child: Text(code),
+                                );
+                              }).toList(),
+                              onChanged: (val) => setState(() => _selectedModule = val),
+                            ),
+                          ),
+
+                          const SizedBox(height: 40),
+
+                          // ── Milestones Header ──
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            crossAxisAlignment: CrossAxisAlignment.end,
+                            children: [
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'Milestones',
+                                    style: GoogleFonts.poppins(
+                                      color: textPrimary,
+                                      fontSize: 22,
+                                      fontWeight: FontWeight.w800,
+                                      letterSpacing: -0.5,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    'Break down into smaller deadlines',
+                                    style: GoogleFonts.poppins(color: textSecondary, fontSize: 12),
+                                  ),
+                                ],
+                              ),
+                              GestureDetector(
+                                onTap: _addMilestone,
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                                  decoration: BoxDecoration(
+                                    gradient: LinearGradient(colors: [primaryAccent.withOpacity(0.2), primaryAccent.withOpacity(0.1)]),
+                                    borderRadius: BorderRadius.circular(16),
+                                    border: Border.all(color: primaryAccent.withOpacity(0.3)),
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      const Icon(Icons.add_rounded, size: 18, color: primaryAccent),
+                                      const SizedBox(width: 4),
+                                      Text(
+                                        'Add Step',
+                                        style: GoogleFonts.poppins(
+                                          color: primaryAccent,
+                                          fontWeight: FontWeight.w700,
+                                          fontSize: 13,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 20),
+                        ],
+                      ),
+                    ),
+                  ),
+
+                  // ── Milestones List ──
+                  SliverPadding(
+                    padding: const EdgeInsets.symmetric(horizontal: 24),
+                    sliver: SliverList(
+                      delegate: SliverChildBuilderDelegate(
+                        (context, index) {
+                          final m = _milestones[index];
+                          return Container(
+                            margin: const EdgeInsets.only(bottom: 16),
+                            padding: const EdgeInsets.all(16),
+                            decoration: BoxDecoration(
+                              color: surfaceColor.withOpacity(0.7),
+                              borderRadius: BorderRadius.circular(24),
+                              border: Border.all(color: Colors.white.withOpacity(0.08)),
+                              boxShadow: [
+                                BoxShadow(color: Colors.black.withOpacity(0.2), blurRadius: 10, offset: const Offset(0, 4)),
+                              ],
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                const Icon(Icons.add, size: 16, color: primaryAccent),
-                                const SizedBox(width: 4),
-                                Text(
-                                  'Add Step',
-                                  style: GoogleFonts.poppins(
-                                    color: primaryAccent,
-                                    fontWeight: FontWeight.w600,
-                                    fontSize: 12,
+                                Row(
+                                  children: [
+                                    // Milestone Number Badge
+                                    Container(
+                                      width: 32, height: 32,
+                                      decoration: BoxDecoration(
+                                        gradient: LinearGradient(colors: [primaryAccent, primaryAccent.withOpacity(0.7)]),
+                                        shape: BoxShape.circle,
+                                        boxShadow: [BoxShadow(color: primaryAccent.withOpacity(0.4), blurRadius: 6)],
+                                      ),
+                                      child: Center(
+                                        child: Text(
+                                          '${index + 1}',
+                                          style: GoogleFonts.poppins(
+                                            color: Colors.white,
+                                            fontWeight: FontWeight.w900,
+                                            fontSize: 14,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 14),
+                                    // Title Input
+                                    Expanded(
+                                      child: TextFormField(
+                                        initialValue: m.title,
+                                        style: GoogleFonts.poppins(color: textPrimary, fontSize: 16, fontWeight: FontWeight.w600),
+                                        decoration: InputDecoration(
+                                          hintText: 'Milestone Name',
+                                          hintStyle: GoogleFonts.poppins(color: textSecondary.withOpacity(0.5), fontWeight: FontWeight.normal),
+                                          isDense: true,
+                                          contentPadding: const EdgeInsets.symmetric(vertical: 8),
+                                          border: InputBorder.none,
+                                        ),
+                                        onChanged: (val) => m.title = val,
+                                      ),
+                                    ),
+                                    // Delete Button
+                                    IconButton(
+                                      icon: Icon(Icons.remove_circle_outline_rounded, color: dangerRed.withOpacity(0.8), size: 22),
+                                      onPressed: () {
+                                        setState(() => _milestones.removeAt(index));
+                                      },
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 16),
+                                
+                                // DateTime Picker Button
+                                GestureDetector(
+                                  onTap: () => _pickDateTime(index),
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                                    decoration: BoxDecoration(
+                                      color: bgColor.withOpacity(0.6),
+                                      borderRadius: BorderRadius.circular(16),
+                                      border: Border.all(color: Colors.white.withOpacity(0.05)),
+                                    ),
+                                    child: Row(
+                                      children: [
+                                        Icon(Icons.calendar_month_rounded, color: secondaryBlue, size: 20),
+                                        const SizedBox(width: 12),
+                                        Text(
+                                          '${m.deadline.day.toString().padLeft(2, '0')}/${m.deadline.month.toString().padLeft(2, '0')}/${m.deadline.year}   •   ${m.deadline.hour.toString().padLeft(2, '0')}:${m.deadline.minute.toString().padLeft(2, '0')}',
+                                          style: GoogleFonts.poppins(
+                                            color: textPrimary,
+                                            fontSize: 13.5,
+                                            fontWeight: FontWeight.w500,
+                                            letterSpacing: 0.5,
+                                          ),
+                                        ),
+                                        const Spacer(),
+                                        Icon(Icons.edit_rounded, color: textSecondary, size: 16),
+                                      ],
+                                    ),
                                   ),
                                 ),
                               ],
                             ),
-                          ),
-                        ),
-                      ],
+                          );
+                        },
+                        childCount: _milestones.length,
+                      ),
                     ),
-                    const SizedBox(height: 8),
-                    Text(
-                      'Break down your assignment into smaller deadlines (e.g. Document, UI Design, Final Code).',
-                      style: GoogleFonts.poppins(color: textSecondary, fontSize: 12),
-                    ),
-                    const SizedBox(height: 16),
-                  ],
-                ),
+                  ),
+                  const SliverToBoxAdapter(child: SizedBox(height: 100)),
+                ],
               ),
             ),
-            
-            // Milestones List
-            SliverPadding(
-              padding: const EdgeInsets.symmetric(horizontal: 24),
-              sliver: SliverList(
-                delegate: SliverChildBuilderDelegate(
-                  (context, index) {
-                    final m = _milestones[index];
-                    return Container(
-                      margin: const EdgeInsets.only(bottom: 16),
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: surfaceColor,
-                        borderRadius: BorderRadius.circular(20),
-                        border: Border.all(color: Colors.white.withOpacity(0.05)),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              Container(
-                                width: 28,
-                                height: 28,
-                                decoration: BoxDecoration(
-                                  color: primaryAccent.withOpacity(0.2),
-                                  shape: BoxShape.circle,
-                                ),
-                                child: Center(
-                                  child: Text(
-                                    '${index + 1}',
-                                    style: GoogleFonts.poppins(
-                                      color: primaryAccent,
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 12,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: TextFormField(
-                                  initialValue: m.title,
-                                  style: const TextStyle(color: textPrimary, fontSize: 15),
-                                  decoration: InputDecoration(
-                                    hintText: 'Milestone Title',
-                                    hintStyle: TextStyle(color: textSecondary.withOpacity(0.5)),
-                                    isDense: true,
-                                    contentPadding: const EdgeInsets.symmetric(vertical: 8),
-                                    border: InputBorder.none,
-                                  ),
-                                  onChanged: (val) => m.title = val,
-                                ),
-                              ),
-                              IconButton(
-                                icon: const Icon(Icons.close_rounded, color: Colors.redAccent, size: 20),
-                                onPressed: () {
-                                  setState(() => _milestones.removeAt(index));
-                                },
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 12),
-                          GestureDetector(
-                            onTap: () => _pickDateTime(index),
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                              decoration: BoxDecoration(
-                                color: bgColor,
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: Row(
-                                children: [
-                                  const Icon(Icons.calendar_month_rounded, color: textSecondary, size: 18),
-                                  const SizedBox(width: 8),
-                                  Text(
-                                    '${m.deadline.day}/${m.deadline.month}/${m.deadline.year} at ${m.deadline.hour.toString().padLeft(2, '0')}:${m.deadline.minute.toString().padLeft(2, '0')}',
-                                    style: GoogleFonts.poppins(color: textSecondary, fontSize: 13),
-                                  ),
-                                  const Spacer(),
-                                  const Icon(Icons.edit_calendar_rounded, color: primaryAccent, size: 18),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    );
-                  },
-                  childCount: _milestones.length,
-                ),
-              ),
-            ),
-            const SliverToBoxAdapter(child: SizedBox(height: 100)),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
