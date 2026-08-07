@@ -8,13 +8,13 @@ import '../models/assignment_model.dart';
 import 'add_assignment_screen.dart';
 import 'assignment_details_screen.dart';
 
-// ── Color Palette ──────────────────────────────────────────────────────────
-const _bgColor       = Color(0xFF09090E);
-const _surfaceColor  = Color(0xFF161622);
-const _primary       = Color(0xFF6C5CE7);
-const _teal          = Color(0xFF22D3A6);
-const _danger        = Color(0xFFFF5C74);
-const _warning       = Color(0xFFFFB020);
+// ── Color Palette — matches TimetableViewScreen ────────────────────────────
+const _bgColor       = Color(0xFF1E1E2E);   // same as timetable bg
+const _surfaceColor  = Color(0xFF252535);   // same as timetable card bg
+const _primary       = Color(0xFF6C63FF);   // same as timetable primary/Lecture
+const _teal          = Color(0xFF00D4AA);   // same as timetable Tutorial
+const _danger        = Color(0xFFFF5C74);   // overdue red
+const _warning       = Color(0xFFFFB347);   // same as timetable Workshop
 const _textPrimary   = Colors.white;
 const _textSecondary = Color(0xFF8A8D9F);
 
@@ -80,14 +80,14 @@ class _AssignmentsScreenState extends State<AssignmentsScreen>
           // ── Dot-grid background pattern
           Positioned.fill(
             child: Opacity(
-              opacity: 0.5,
+              opacity: 0.4,
               child: SvgPicture.string(_bgPatternSvg, fit: BoxFit.cover),
             ),
           ),
-          // ── Glowing blobs
-          _blob(top: -160, left: -100, size: 380, color: _primary.withOpacity(0.18), blur: 130),
-          _blob(bottom: 40, right: -130, size: 320, color: _teal.withOpacity(0.12), blur: 110),
-          _blob(top: 250, right: 0, size: 200, color: _warning.withOpacity(0.08), blur: 90),
+          // ── Glowing blobs — timetable-matching colors
+          _blob(top: -160, left: -100, size: 380, color: const Color(0xFF2D1B69).withOpacity(0.5), blur: 130),
+          _blob(bottom: 40, right: -130, size: 320, color: const Color(0xFF004D40).withOpacity(0.3), blur: 110),
+          _blob(top: 250, right: 0, size: 200, color: const Color(0xFF4ECDC4).withOpacity(0.08), blur: 90),
 
           Consumer<AssignmentProvider>(
             builder: (context, provider, _) {

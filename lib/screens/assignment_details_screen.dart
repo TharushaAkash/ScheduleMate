@@ -8,13 +8,13 @@ import '../models/assignment_model.dart';
 import '../providers/assignment_provider.dart';
 import 'add_assignment_screen.dart';
 
-// ── Color Palette ──────────────────────────────────────────────────────────
-const _bgColor       = Color(0xFF09090E);
-const _surfaceColor  = Color(0xFF161622);
-const _primary       = Color(0xFF6C5CE7);
-const _teal          = Color(0xFF22D3A6);
-const _danger        = Color(0xFFFF5C74);
-const _warning       = Color(0xFFFFB020);
+// ── Color Palette — matches TimetableViewScreen ────────────────────────────
+const _bgColor       = Color(0xFF1E1E2E);   // timetable bg
+const _surfaceColor  = Color(0xFF252535);   // timetable card bg
+const _primary       = Color(0xFF6C63FF);   // timetable primary / Lecture
+const _teal          = Color(0xFF00D4AA);   // timetable Tutorial
+const _danger        = Color(0xFFFF5C74);   // overdue red
+const _warning       = Color(0xFFFFB347);   // timetable Workshop
 const _textPrimary   = Colors.white;
 const _textSecondary = Color(0xFF8A8D9F);
 
@@ -131,12 +131,12 @@ class AssignmentDetailsScreen extends StatelessWidget {
                 ),
               ),
             ),
-            // Glow blobs
+            // Glow blobs — timetable colors
             Positioned(top: -60, right: -60, child: Container(width: 220, height: 220,
-              decoration: BoxDecoration(shape: BoxShape.circle, color: accent.withOpacity(0.2),
-                boxShadow: [BoxShadow(color: accent.withOpacity(0.3), blurRadius: 80, spreadRadius: 20)]))),
+              decoration: BoxDecoration(shape: BoxShape.circle, color: const Color(0xFF2D1B69).withOpacity(0.6),
+                boxShadow: [BoxShadow(color: const Color(0xFF6C63FF).withOpacity(0.3), blurRadius: 80, spreadRadius: 20)]))),
             Positioned(bottom: -30, left: -40, child: Container(width: 160, height: 160,
-              decoration: BoxDecoration(shape: BoxShape.circle, color: _teal.withOpacity(0.1)))),
+              decoration: BoxDecoration(shape: BoxShape.circle, color: const Color(0xFF004D40).withOpacity(0.3)))),
             // SVG decorative clipboard icon
             Positioned(
               right: 10, top: 30,
