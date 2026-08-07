@@ -631,6 +631,35 @@ class GoogleDriveRoomService {
     try {
       final chatFile = await _getChatFile(api, roomId);
       if (chatFile != null && chatFile.id != null) {
+        // Sync members from chat history to .members.json before wiping chat
+        try {
+          final allMembers = await membersStream(roomId).first;
+          final currentMembers = allMembers.map((m) => {
+            'uid': m.uid,
+            'displayName': m.displayName,
+            'email': m.email,
+            'photoUrl': m.photoUrl,
+            'role': m.role,
+            'joinedAt': DateTime.now().toIso8601String(),
+          }).toList();
+          
+          final membersFile = await _getMembersFile(api, roomId);
+          final syncJsonStr = jsonEncode(currentMembers);
+          final syncBytes = utf8.encode(syncJsonStr);
+          final syncUploadMedia = drive.Media(Stream.value(syncBytes), syncBytes.length);
+          
+          if (membersFile != null && membersFile.id != null) {
+            await api.files.update(drive.File(), membersFile.id!, uploadMedia: syncUploadMedia);
+          } else {
+            final newFile = drive.File()
+              ..name = '.members.json'
+              ..parents = [roomId];
+            await api.files.create(newFile, uploadMedia: syncUploadMedia);
+          }
+        } catch (e) {
+          debugPrint('GoogleDriveRoomService.clearChat sync error: $e');
+        }
+
         final jsonStr = jsonEncode([]);
         final bytes = utf8.encode(jsonStr);
         final uploadMedia = drive.Media(Stream.value(bytes), bytes.length);
