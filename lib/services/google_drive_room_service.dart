@@ -676,7 +676,7 @@ class GoogleDriveRoomService {
       // Trigger Vercel Push Notification API
       try {
         final topic = _sanitizeTopic(roomId);
-        final vercelUrl = 'https://schedule-mate-764ccbse6-tharushaakashs-projects.vercel.app/api/notify'; 
+        final vercelUrl = 'https://schedule-mate-livid.vercel.app/api/notify'; 
         
         http.post(
           Uri.parse(vercelUrl),

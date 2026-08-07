@@ -260,19 +260,7 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
                         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
                         child: Column(
                           children: [
-                            _SettingsTile(
-                              isDark: isDark,
-                              accent: _Accent.theme,
-                              icon: themeProvider.isDarkMode ? Icons.dark_mode_rounded : Icons.light_mode_rounded,
-                              title: 'Dark Mode',
-                              subtitle: themeProvider.isDarkMode ? 'Currently dark' : 'Currently light',
-                              trailing: Switch.adaptive(
-                                value: themeProvider.isDarkMode,
-                                onChanged: (_) => themeProvider.toggleTheme(),
-                                activeColor: _Accent.theme,
-                              ),
-                            ),
-                            _SettingsDivider(isDark: isDark),
+
                             _SettingsTile(
                               isDark: isDark,
                               accent: _Accent.lock,

@@ -40,6 +40,12 @@ Future<void> main() async {
   
   // Setup FCM Foreground Handler
   FirebaseMessaging.onMessage.listen((RemoteMessage message) async {
+    final senderId = message.data['senderId'];
+    final currentUser = BackupService.instance.currentUser;
+    
+    // Ignore messages sent by ourselves!
+    if (currentUser != null && senderId == currentUser.id) return;
+    
     if (message.notification != null) {
       await AppNotificationProvider.saveMessageToPrefs(
         message.messageId ?? DateTime.now().millisecondsSinceEpoch.toString(),
@@ -91,7 +97,7 @@ class MyApp extends StatelessWidget {
           return MaterialApp(
             title: 'ScheduleMate',
             debugShowCheckedModeBanner: false,
-            themeMode: themeProvider.themeMode,
+            themeMode: ThemeMode.dark,
             theme: ThemeData(
               useMaterial3: true,
               brightness: Brightness.light,
