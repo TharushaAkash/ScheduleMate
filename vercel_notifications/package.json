@@ -1,0 +1,12 @@
+{
+  "name": "gpa-timetable-notifications",
+  "version": "1.0.0",
+  "description": "FCM Push Notifications for ScheduleMate Rooms",
+  "main": "api/notify.js",
+  "scripts": {
+    "start": "node api/notify.js"
+  },
+  "dependencies": {
+    "firebase-admin": "^12.0.0"
+  }
+}

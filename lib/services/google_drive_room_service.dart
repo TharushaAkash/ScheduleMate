@@ -3,6 +3,8 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:googleapis/drive/v3.dart' as drive;
+import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:http/http.dart' as http;
 
 import '../models/room_model.dart';
 import 'backup_service.dart';
@@ -228,6 +230,15 @@ class GoogleDriveRoomService {
         );
       } catch (_) {}
       
+      await _registerMemberInDrive(api, createdFolder.id!, role: 'admin');
+      
+      try {
+        final topic = _sanitizeTopic(createdFolder.id!);
+        await FirebaseMessaging.instance.subscribeToTopic(topic);
+      } catch (e) {
+        debugPrint('FCM Subscribe error: $e');
+      }
+      
       return createdFolder.id;
     } catch (e) {
       debugPrint('GoogleDriveRoomService.createRoom error: $e');
@@ -246,6 +257,16 @@ class GoogleDriveRoomService {
         if (name.startsWith('[ScheduleMate] ')) {
           name = name.substring(15);
         }
+        
+        await _registerMemberInDrive(api, folder.id!);
+        
+        try {
+          final topic = _sanitizeTopic(folder.id!);
+          await FirebaseMessaging.instance.subscribeToTopic(topic);
+        } catch (e) {
+          debugPrint('FCM Subscribe error: $e');
+        }
+        
         return {'roomId': folder.id!, 'roomName': name};
       }
     } catch (e) {
@@ -261,6 +282,9 @@ class GoogleDriveRoomService {
       final folder = await api.files.get(roomId, $fields: 'id, name, owners') as drive.File;
       String name = folder.name ?? 'Unknown Room';
       if (name.startsWith('[ScheduleMate] ')) name = name.substring(15);
+      
+      // Auto-register current user if they are missing
+      _registerMemberInDrive(api, roomId).catchError((_) {});
       
       return {
         'id': folder.id,
@@ -283,7 +307,7 @@ class GoogleDriveRoomService {
     }
     
     final targetId = parentId ?? roomId;
-    final query = "'$targetId' in parents and trashed = false and name != '.chat.json'";
+    final query = "'$targetId' in parents and trashed = false and name != '.chat.json' and name != '.members.json'";
     
     try {
       final fileList = await api.files.list(q: query, $fields: 'files(id, name, webViewLink, mimeType, createdTime)');
@@ -396,19 +420,80 @@ class GoogleDriveRoomService {
       return;
     }
     try {
-      final pList = await api.permissions.list(roomId, $fields: 'permissions(id, emailAddress, displayName, role)');
       final List<RoomMember> members = [];
+      
+      // 1. Get explicit permissions (owners/admins)
+      final pList = await api.permissions.list(roomId, $fields: 'permissions(id, emailAddress, displayName, role)');
       if (pList.permissions != null) {
         for (var p in pList.permissions!) {
           if (p.type == 'anyone') continue;
           members.add(RoomMember(
-            uid: p.id!,
+            uid: p.id ?? '',
             displayName: p.displayName ?? p.emailAddress ?? 'Unknown',
             email: p.emailAddress,
             role: p.role == 'owner' ? 'admin' : 'member',
           ));
         }
       }
+      
+      // 2. Get registered members from .members.json
+      final membersFile = await _getMembersFile(api, roomId);
+      if (membersFile != null && membersFile.id != null) {
+        final media = await api.files.get(membersFile.id!, downloadOptions: drive.DownloadOptions.fullMedia) as drive.Media;
+        final List<int> bytes = [];
+        await for (final chunk in media.stream) bytes.addAll(chunk);
+        if (bytes.isNotEmpty) {
+          final jsonStr = utf8.decode(bytes);
+          final List<dynamic> jsonList = jsonDecode(jsonStr);
+          
+          for (var j in jsonList) {
+            final uid = j['uid'] as String?;
+            final email = j['email'] as String?;
+            
+            final exists = members.any((m) => 
+               (email != null && m.email == email) || 
+               (uid != null && m.uid == uid && m.uid.isNotEmpty));
+            
+            if (!exists) {
+              members.add(RoomMember(
+                uid: uid ?? '',
+                displayName: j['displayName'] ?? 'Unknown',
+                email: email,
+                photoUrl: j['photoUrl'],
+                role: j['role'] ?? 'member',
+              ));
+            }
+          }
+        }
+      }
+      
+      // 3. Fallback to recover members from chat history
+      final chatFile = await _getChatFile(api, roomId);
+      if (chatFile != null && chatFile.id != null) {
+        final media = await api.files.get(chatFile.id!, downloadOptions: drive.DownloadOptions.fullMedia) as drive.Media;
+        final List<int> bytes = [];
+        await for (final chunk in media.stream) bytes.addAll(chunk);
+        if (bytes.isNotEmpty) {
+          final jsonStr = utf8.decode(bytes);
+          final List<dynamic> jsonList = jsonDecode(jsonStr);
+          
+          for (var j in jsonList) {
+            final uid = j['senderId'] as String?;
+            final exists = members.any((m) => uid != null && m.uid == uid && m.uid.isNotEmpty);
+            
+            if (!exists && uid != null) {
+              members.add(RoomMember(
+                uid: uid,
+                displayName: j['senderName'] ?? 'Unknown',
+                email: null,
+                photoUrl: j['senderPhotoUrl'],
+                role: 'member',
+              ));
+            }
+          }
+        }
+      }
+      
       yield members;
     } catch (e) {
       debugPrint('GoogleDriveRoomService.membersStream error: $e');
@@ -420,7 +505,30 @@ class GoogleDriveRoomService {
     final api = await _getDriveApi();
     if (api == null) return;
     try {
-      await api.permissions.delete(roomId, memberUid);
+      try {
+        await api.permissions.delete(roomId, memberUid);
+      } catch (_) {}
+      
+      final membersFile = await _getMembersFile(api, roomId);
+      if (membersFile != null && membersFile.id != null) {
+        final media = await api.files.get(membersFile.id!, downloadOptions: drive.DownloadOptions.fullMedia) as drive.Media;
+        final List<int> bytes = [];
+        await for (final chunk in media.stream) bytes.addAll(chunk);
+        if (bytes.isNotEmpty) {
+          final jsonStr = utf8.decode(bytes);
+          List<dynamic> jsonList = jsonDecode(jsonStr);
+          
+          final initialLength = jsonList.length;
+          jsonList.removeWhere((m) => m['uid'] == memberUid);
+          
+          if (jsonList.length < initialLength) {
+            final newJsonStr = jsonEncode(jsonList);
+            final newBytes = utf8.encode(newJsonStr);
+            final uploadMedia = drive.Media(Stream.value(newBytes), newBytes.length);
+            await api.files.update(drive.File(), membersFile.id!, uploadMedia: uploadMedia);
+          }
+        }
+      }
     } catch (e) {
       debugPrint('GoogleDriveRoomService.removeMember error: $e');
     }
@@ -557,11 +665,93 @@ class GoogleDriveRoomService {
           ..parents = [roomId];
         await api.files.create(newFile, uploadMedia: uploadMedia);
       }
+      
+      // Trigger Vercel Push Notification API
+      try {
+        final topic = _sanitizeTopic(roomId);
+        // TODO: Replace with your actual deployed Vercel URL
+        final vercelUrl = 'https://YOUR-VERCEL-URL.vercel.app/api/notify'; 
+        
+        http.post(
+          Uri.parse(vercelUrl),
+          headers: {'Content-Type': 'application/json'},
+          body: jsonEncode({
+            'topic': topic,
+            'title': 'New Message',
+            'body': '${user.displayName}: $text',
+            'senderId': user.id,
+          }),
+        ).catchError((_) => http.Response('Error', 500));
+      } catch (e) {
+        debugPrint('FCM Trigger error: $e');
+      }
+      
       return true;
     } catch (e) {
       debugPrint('GoogleDriveRoomService.sendMessage error: $e');
       return false;
     }
+  }
+
+  Future<drive.File?> _getMembersFile(drive.DriveApi api, String roomId) async {
+    final query = "'$roomId' in parents and name = '.members.json' and trashed = false";
+    final fileList = await api.files.list(q: query);
+    if (fileList.files != null && fileList.files!.isNotEmpty) {
+      return fileList.files!.first;
+    }
+    return null;
+  }
+
+  Future<void> _registerMemberInDrive(drive.DriveApi api, String roomId, {String role = 'member'}) async {
+    final user = currentUser;
+    if (user == null) return;
+    try {
+      final membersFile = await _getMembersFile(api, roomId);
+      List<dynamic> currentMembers = [];
+      String? fileId;
+      
+      if (membersFile != null) {
+        fileId = membersFile.id;
+        final media = await api.files.get(fileId!, downloadOptions: drive.DownloadOptions.fullMedia) as drive.Media;
+        final List<int> bytes = [];
+        await for (final chunk in media.stream) bytes.addAll(chunk);
+        if (bytes.isNotEmpty) {
+          final jsonStr = utf8.decode(bytes);
+          currentMembers = jsonDecode(jsonStr);
+        }
+      }
+      
+      final exists = currentMembers.any((m) => m['uid'] == user.id);
+      if (!exists) {
+        currentMembers.add({
+          'uid': user.id,
+          'displayName': user.displayName,
+          'email': user.email,
+          'photoUrl': user.photoUrl,
+          'role': role,
+          'joinedAt': DateTime.now().toIso8601String(),
+        });
+        
+        final jsonStr = jsonEncode(currentMembers);
+        final bytes = utf8.encode(jsonStr);
+        final uploadMedia = drive.Media(Stream.value(bytes), bytes.length);
+        
+        if (fileId != null) {
+          await api.files.update(drive.File(), fileId, uploadMedia: uploadMedia);
+        } else {
+          final newFile = drive.File()
+            ..name = '.members.json'
+            ..parents = [roomId];
+          await api.files.create(newFile, uploadMedia: uploadMedia);
+        }
+      }
+    } catch (e) {
+      debugPrint('GoogleDriveRoomService._registerMemberInDrive error: $e');
+    }
+  }
+
+  String _sanitizeTopic(String id) {
+    return 'room_${id.replaceAll(RegExp(r'[^a-zA-Z0-9-_.~%]'), '')}';
   }
 }
 
