@@ -221,6 +221,8 @@ class _AssignmentsScreenState extends State<AssignmentsScreen>
           );
         },
       ),
+        ],
+      ),
     );
   }
 }
