@@ -286,6 +286,13 @@ class GoogleDriveRoomService {
       // Auto-register current user if they are missing
       _registerMemberInDrive(api, roomId).catchError((_) {});
       
+      try {
+        final topic = _sanitizeTopic(roomId);
+        FirebaseMessaging.instance.subscribeToTopic(topic);
+      } catch (e) {
+        debugPrint('FCM Subscribe error: $e');
+      }
+      
       return {
         'id': folder.id,
         'name': name,
@@ -564,7 +571,7 @@ class GoogleDriveRoomService {
       return;
     }
     
-    DateTime? lastModified;
+    String? lastMd5;
     String? currentFileId;
     List<RoomMessage> lastMessages = [];
     
@@ -576,10 +583,10 @@ class GoogleDriveRoomService {
         }
         
         if (currentFileId != null) {
-          final meta = await api.files.get(currentFileId, $fields: 'id, modifiedTime') as drive.File;
+          final meta = await api.files.get(currentFileId, $fields: 'id, md5Checksum') as drive.File;
           
-          if (lastModified == null || meta.modifiedTime == null || meta.modifiedTime != lastModified) {
-            lastModified = meta.modifiedTime;
+          if (lastMd5 == null || meta.md5Checksum == null || meta.md5Checksum != lastMd5) {
+            lastMd5 = meta.md5Checksum;
             
             final media = await api.files.get(currentFileId, downloadOptions: drive.DownloadOptions.fullMedia) as drive.Media;
             final List<int> bytes = [];
@@ -597,7 +604,7 @@ class GoogleDriveRoomService {
       } catch (e) {
         if (e.toString().contains('404')) {
           currentFileId = null;
-          lastModified = null;
+          lastMd5 = null;
           lastMessages = [];
           yield lastMessages;
         }
@@ -669,8 +676,7 @@ class GoogleDriveRoomService {
       // Trigger Vercel Push Notification API
       try {
         final topic = _sanitizeTopic(roomId);
-        // TODO: Replace with your actual deployed Vercel URL
-        final vercelUrl = 'https://YOUR-VERCEL-URL.vercel.app/api/notify'; 
+        final vercelUrl = 'https://schedule-mate-764ccbse6-tharushaakashs-projects.vercel.app/api/notify'; 
         
         http.post(
           Uri.parse(vercelUrl),
