@@ -31,6 +31,7 @@ class _RoomDetailsScreenState extends State<RoomDetailsScreen> {
   final _chatCtrl = TextEditingController();
   final ScrollController _chatScrollCtrl = ScrollController();
   Stream<List<RoomMessage>>? _chatStream;
+  Stream<List<RoomFile>>? _filesStream;
   
   final List<RoomMessage> _optimisticMessages = [];
 
@@ -43,9 +44,16 @@ class _RoomDetailsScreenState extends State<RoomDetailsScreen> {
   void initState() {
     super.initState();
     _searchCtrl.addListener(() => setState(() => _searchQuery = _searchCtrl.text.toLowerCase()));
+    _refreshFiles();
     if (_tab == 3) {
       _chatStream = _service.messagesStream(widget.room.roomId);
     }
+  }
+
+  void _refreshFiles() {
+    setState(() {
+      _filesStream = _service.filesStream(widget.room.roomId, parentId: _currentFolderId);
+    });
   }
 
   @override
@@ -64,6 +72,7 @@ class _RoomDetailsScreenState extends State<RoomDetailsScreen> {
       _currentFolderName = folder.name;
       _searchCtrl.clear();
     });
+    _refreshFiles();
   }
 
   void _navigateTo(int breadcrumbIndex) {
@@ -74,6 +83,7 @@ class _RoomDetailsScreenState extends State<RoomDetailsScreen> {
       _currentFolderName = crumb.name;
       _searchCtrl.clear();
     });
+    _refreshFiles();
   }
 
   // ─── Actions ─────────────────────────────────────────────────────────────────
@@ -134,6 +144,7 @@ class _RoomDetailsScreenState extends State<RoomDetailsScreen> {
           content: Text(success ? 'Link shared!' : 'Failed to share link.')));
     }
     setState(() => _isUploading = false);
+    if (success) _refreshFiles();
   }
 
   Future<void> _createFolder() async {
@@ -166,7 +177,8 @@ class _RoomDetailsScreenState extends State<RoomDetailsScreen> {
       ),
     );
     if (name == null || name.isEmpty) return;
-    await _service.createFolder(widget.room.roomId, name, parentId: _currentFolderId);
+    final folderId = await _service.createFolder(widget.room.roomId, name, parentId: _currentFolderId);
+    if (folderId != null) _refreshFiles();
   }
 
   // Upload a file directly to Supabase Storage
@@ -201,6 +213,7 @@ class _RoomDetailsScreenState extends State<RoomDetailsScreen> {
         content: Text(success ? '✅ "$fileName" uploaded!' : '❌ Upload failed. Try again.'),
       ));
     }
+    if (success) _refreshFiles();
   }
   void _showUploadMenu() {
     showModalBottomSheet(
@@ -641,7 +654,7 @@ class _RoomDetailsScreenState extends State<RoomDetailsScreen> {
       ),
       Expanded(
         child: StreamBuilder<List<RoomFile>>(
-          stream: _service.filesStream(widget.room.roomId, parentId: _currentFolderId),
+          stream: _filesStream,
           builder: (ctx, snap) {
             if (snap.connectionState == ConnectionState.waiting) {
               return const Center(child: CircularProgressIndicator(color: _accent));
