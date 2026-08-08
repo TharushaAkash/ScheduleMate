@@ -20,6 +20,7 @@ import 'timetable_upload_screen.dart';
 import 'ca_marks_screen.dart';
 import '../services/backup_service.dart';
 import 'announcements_screen.dart';
+import 'gpa_insight_screen.dart';
 
 // ---------------------------------------------------------------------------
 // Shared design tokens — same premium palette used across the app
@@ -625,7 +626,7 @@ class _GpaScreenState extends State<GpaScreen> {
 
   Widget _buildActionButtons(bool isDark) {
     final items = [
-      {'icon': Icons.show_chart_rounded, 'label': 'Performance', 'color': _Palette.primary},
+      {'icon': Icons.psychology_rounded, 'label': 'Insights', 'color': _Palette.primary},
       {'icon': Icons.emoji_events_outlined, 'label': 'Rankings', 'color': const Color(0xFFFFB347)},
       {'icon': Icons.calendar_month_outlined, 'label': 'Timetable', 'color': _Palette.secondary},
       {'icon': Icons.description_outlined, 'label': 'CA Marks', 'color': _Palette.accent},
@@ -642,6 +643,8 @@ class _GpaScreenState extends State<GpaScreen> {
                   Navigator.push(context, MaterialPageRoute(builder: (_) => const TimetableUploadScreen()));
                 } else if (item['label'] == 'CA Marks') {
                   Navigator.push(context, MaterialPageRoute(builder: (_) => const CaMarksScreen()));
+                } else if (item['label'] == 'Insights') {
+                  Navigator.push(context, MaterialPageRoute(builder: (_) => const GpaInsightScreen()));
                 } else {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(content: Text('${item['label']} coming soon!'), behavior: SnackBarBehavior.floating),
