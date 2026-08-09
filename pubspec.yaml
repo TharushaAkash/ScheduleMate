@@ -78,3 +78,4 @@ flutter:
     - assets/icon/app_icon.png
     - assets/3d_task.png
     - readme-assets/app_icon.png
+    - .env

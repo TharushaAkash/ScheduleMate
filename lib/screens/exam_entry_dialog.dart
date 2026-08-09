@@ -146,15 +146,21 @@ class _ExamEntryDialogState extends State<ExamEntryDialog> {
         String seatNo = '';
         String sessionNo = '';
 
-        // Basic heuristic parsing across the row elements
+        // Advanced heuristic parsing across the row elements
         for (var l in row) {
           final lText = l.text.trim();
           final lLower = lText.toLowerCase();
+          final isNum = int.tryParse(lText) != null;
+          final numVal = isNum ? int.parse(lText) : -1;
 
-          if (lText.contains(RegExp(r'^\w{2}\d{4}'))) {
+          if (lText.contains(RegExp(r'^\w{2,4}\s*\d{3,4}', caseSensitive: false))) {
             subjectCode = lText.split(' ').first;
-          } else if (lText.contains(RegExp(r'\d{1,2}(th|st|nd|rd)')) ||
-              lText.contains(RegExp(r'\d{4}')) || lLower.contains('jan') || lLower.contains('feb') || lLower.contains('mar') || lLower.contains('apr') || lLower.contains('may') || lLower.contains('jun') || lLower.contains('jul') || lLower.contains('aug') || lLower.contains('sep') || lLower.contains('oct') || lLower.contains('nov') || lLower.contains('dec')) {
+          } else if (lText.contains(RegExp(r'\d{1,2}(th|st|nd|rd)', caseSensitive: false)) ||
+              lText.contains(RegExp(r'\d{4}')) ||
+              lLower.contains('jan') || lLower.contains('feb') || lLower.contains('mar') ||
+              lLower.contains('apr') || lLower.contains('may') || lLower.contains('jun') ||
+              lLower.contains('jul') || lLower.contains('aug') || lLower.contains('sep') ||
+              lLower.contains('oct') || lLower.contains('nov') || lLower.contains('dec')) {
             if (date.isEmpty)
               date = lText;
             else
@@ -164,30 +170,64 @@ class _ExamEntryDialogState extends State<ExamEntryDialog> {
               time = lText;
             else
               time += ' $lText';
-          } else if (lText.startsWith('G') && lText.length == 5) {
+          } else if ((lText.startsWith('G') && lText.length == 5) || lLower.contains('hall') || lLower.contains('lab')) {
             location = lText;
-          } else if (lLower.contains('session')) {
+          } else if (lLower.contains('session') ||
+              lLower.contains('sess') ||
+              RegExp(r'^[sS][-_\s]?\d+$').hasMatch(lText) ||
+              lLower == 'fn' || lLower == 'an' || lLower == 'morning' || lLower == 'afternoon') {
             sessionNo = lText;
-          } else if (int.tryParse(lText) != null) {
+          } else if (lLower.contains('seat')) {
             seatNo = lText;
-          } else if (lText.length > 5 &&
+          } else if (isNum) {
+            if (numVal >= 1 && numVal <= 4 && sessionNo.isEmpty) {
+              sessionNo = 'Session $numVal';
+            } else if (seatNo.isEmpty) {
+              seatNo = lText;
+            }
+          } else if (lText.length > 3 &&
               subjectName.isEmpty &&
               !lText.contains(RegExp(r'\d'))) {
             subjectName = lText;
           }
         }
 
+        // Post-process date and time to strictly separate them if OCR merged them
+        final timeRangePattern = RegExp(
+          r'\b\d{1,2}[:.]\d{2}\s*(?:AM|PM|am|pm)?\s*(?:to|-|–|—|till|until)\s*\d{1,2}[:.]\d{2}\s*(?:AM|PM|am|pm)?\b',
+          caseSensitive: false,
+        );
+        final singleTimePattern = RegExp(
+          r'\b\d{1,2}[:.]\d{2}\s*(?:AM|PM|am|pm)?\b',
+          caseSensitive: false,
+        );
+        final amPmPattern = RegExp(r'\b\d{1,2}\s*(?:AM|PM|am|pm)\b', caseSensitive: false);
+
+        final tMatch = timeRangePattern.firstMatch(date) ?? singleTimePattern.firstMatch(date) ?? amPmPattern.firstMatch(date);
+        if (tMatch != null) {
+          final extractedTime = tMatch.group(0)!.trim();
+          date = date.replaceRange(tMatch.start, tMatch.end, '').replaceAll(RegExp(r'\s+'), ' ').trim();
+          if (time.isEmpty) {
+            time = extractedTime;
+          }
+        }
+
         if (subjectCode.isNotEmpty) {
-          extractedExams.add(ExamTimetableEntry(
-            subjectCode: subjectCode,
-            subjectName: subjectName,
-            location: location,
-            date: date,
-            time: time,
-            seatNo: seatNo,
-            sessionNo: sessionNo,
-            examType: _examTypeCtrl.text.isNotEmpty ? _examTypeCtrl.text : 'Final Exam',
-          ));
+          bool isDuplicate = extractedExams.any((e) => 
+            e.subjectCode == subjectCode && e.date == date && e.time == time);
+            
+          if (!isDuplicate) {
+            extractedExams.add(ExamTimetableEntry(
+              subjectCode: subjectCode,
+              subjectName: subjectName,
+              location: location,
+              date: date,
+              time: time,
+              seatNo: seatNo,
+              sessionNo: sessionNo,
+              examType: _examTypeCtrl.text.isNotEmpty ? _examTypeCtrl.text : 'Final Exam',
+            ));
+          }
         }
       }
 
@@ -196,15 +236,15 @@ class _ExamEntryDialogState extends State<ExamEntryDialog> {
       if (mounted) {
         if (extractedExams.length > 1) {
           final provider = context.read<TimetableProvider>();
-          for (var ex in extractedExams) {
-            provider.addExamEntry(ex);
+          await provider.addExamEntries(extractedExams);
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                  content: Text(
+                      'Successfully extracted and saved ${extractedExams.length} exams!')),
+            );
+            Navigator.of(context).pop();
           }
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-                content: Text(
-                    'Successfully extracted and saved ${extractedExams.length} exams!')),
-          );
-          Navigator.of(context).pop();
         } else if (extractedExams.length == 1) {
           final ex = extractedExams.first;
           _subjectCodeCtrl.text = ex.subjectCode;

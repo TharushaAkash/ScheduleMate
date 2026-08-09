@@ -7,6 +7,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'home_screen.dart';
 import '../models/assignment_model.dart';
 import '../providers/assignment_provider.dart';
 import '../providers/timetable_provider.dart';
@@ -31,6 +32,8 @@ class _AddAssignmentScreenState extends State<AddAssignmentScreen> {
     final promptController = TextEditingController();
     String pdfText = '';
     String pdfName = '';
+    DateTime? targetDeadline;
+    
     await showDialog(
       context: context,
       builder: (ctx) {
@@ -46,13 +49,14 @@ class _AddAssignmentScreenState extends State<AddAssignmentScreen> {
                   Text('AI Task Breakdown', style: GoogleFonts.poppins(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18)),
                 ],
               ),
-              content: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    'Describe your assignment. The AI will break it down into manageable milestones via n8n automation.',
-                    style: GoogleFonts.poppins(color: Colors.white70, fontSize: 13),
-                  ),
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      'Describe your assignment. The AI will break it down into manageable milestones via n8n automation.',
+                      style: GoogleFonts.poppins(color: Colors.white70, fontSize: 13),
+                    ),
                   const SizedBox(height: 16),
                   TextField(
                     controller: promptController,
@@ -116,7 +120,44 @@ class _AddAssignmentScreenState extends State<AddAssignmentScreen> {
                       ),
                     ),
                   ),
+                  const SizedBox(height: 12),
+                  GestureDetector(
+                    onTap: () async {
+                      final picked = await showDatePicker(
+                        context: context,
+                        initialDate: DateTime.now().add(const Duration(days: 7)),
+                        firstDate: DateTime.now(),
+                        lastDate: DateTime.now().add(const Duration(days: 365)),
+                      );
+                      if (picked != null) {
+                        setDialogState(() => targetDeadline = picked);
+                      }
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.05),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: Colors.white.withOpacity(0.1)),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(Icons.calendar_today_rounded, size: 20, color: targetDeadline != null ? const Color(0xFF6C5CE7) : Colors.white70),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Text(
+                              targetDeadline != null ? 'Target Deadline: ${targetDeadline!.toIso8601String().split('T')[0]}' : 'Set Target Deadline (Optional)',
+                              style: GoogleFonts.poppins(color: targetDeadline != null ? Colors.white : Colors.white70, fontSize: 12, fontWeight: targetDeadline != null ? FontWeight.w600 : FontWeight.normal),
+                            ),
+                          ),
+                          if (targetDeadline != null)
+                            const Icon(Icons.check_circle_rounded, color: Color(0xFF6C5CE7), size: 16),
+                        ],
+                      ),
+                    ),
+                  ),
                 ],
+                ),
               ),
               actions: [
                 TextButton(
@@ -125,19 +166,23 @@ class _AddAssignmentScreenState extends State<AddAssignmentScreen> {
                 ),
                 ElevatedButton(
                   onPressed: _isGeneratingAI ? null : () async {
-                    if (promptController.text.trim().isEmpty) return;
+                    if (promptController.text.trim().isEmpty && pdfText.trim().isEmpty) {
+                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please enter a description or upload a PDF.')));
+                      return;
+                    }
                     setDialogState(() => _isGeneratingAI = true);
                     
                     try {
                       String textResult = '';
                       
                       final todayStr = DateTime.now().toIso8601String().split('T')[0];
+                      final deadlineStr = targetDeadline != null ? '\nIMPORTANT: The overall target deadline for this assignment is ${targetDeadline!.toIso8601String().split('T')[0]}. If the prompt or PDF does not specify exact dates, use this target deadline to logically space out the milestones.' : '\nIf no specific dates are given in the prompt, space them out logically starting from today.';
                       
                       final promptText = '''
 You are an AI task planner. Today's date is $todayStr.
 Break down the following project/assignment into 3 to 5 logical milestones.
 For beginners, include initial planning steps like sketching UI, drawing ER diagrams, documentation, setup, etc.
-IMPORTANT: Analyze any specific dates or deadlines mentioned in the assignment description. Assign an exact deadline date for each milestone in YYYY-MM-DD format based on the prompt's instructions. If no specific dates are given, space them out logically starting from today.
+Analyze any specific dates or deadlines mentioned in the assignment description. Assign an exact deadline date for each milestone in YYYY-MM-DD format based on the prompt's instructions.$deadlineStr
 Return ONLY a valid JSON object in this exact format, with no markdown formatting or extra text:
 {"milestones": [{"title": "Step name here", "description": "Short description of what to do", "deadline_date": "2024-05-20", "subtasks": [{"title": "Subtask 1", "hours": 4}, {"title": "Subtask 2", "hours": 2}]}]}
 
@@ -157,7 +202,7 @@ ${pdfText.isNotEmpty ? '\nExtracted PDF Content for context:\n$pdfText' : ''}
                             'Authorization': 'Bearer $groqKey',
                           },
                           body: json.encode({
-                            'model': 'llama3-70b-8192',
+                            'model': 'llama-3.3-70b-versatile',
                             'messages': [{'role': 'user', 'content': promptText}],
                             'response_format': {'type': 'json_object'}
                           }),
@@ -369,7 +414,11 @@ ${pdfText.isNotEmpty ? '\nExtracted PDF Content for context:\n$pdfText' : ''}
         provider.addAssignment(newAssignment);
       }
       
-      Navigator.pop(context);
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(builder: (_) => const HomeScreen(initialIndex: 3)), // 3 is Assignments tab
+        (route) => false,
+      );
     }
   }
 

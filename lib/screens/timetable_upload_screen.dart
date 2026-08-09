@@ -65,6 +65,9 @@ class _TimetableUploadScreenState extends State<TimetableUploadScreen>
   }
 
   Future<void> _loadSavedProfiles() async {
+    if (mounted) {
+      await context.read<TimetableProvider>().loadExamTimetable();
+    }
     final profiles = await DatabaseHelper.instance.getSavedTimetableProfiles();
     final prefs = await SharedPreferences.getInstance();
     final semester = prefs.getString('notified_semester');
