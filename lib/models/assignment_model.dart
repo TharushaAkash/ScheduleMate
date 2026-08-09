@@ -1,16 +1,16 @@
 import 'dart:convert';
 import 'package:uuid/uuid.dart';
 
-class Milestone {
+class SubTask {
   final String id;
   String title;
-  DateTime deadline;
+  int estimatedHours;
   bool isCompleted;
 
-  Milestone({
+  SubTask({
     String? id,
     required this.title,
-    required this.deadline,
+    this.estimatedHours = 0,
     this.isCompleted = false,
   }) : id = id ?? const Uuid().v4();
 
@@ -18,8 +18,47 @@ class Milestone {
     return {
       'id': id,
       'title': title,
+      'estimatedHours': estimatedHours,
+      'isCompleted': isCompleted,
+    };
+  }
+
+  factory SubTask.fromMap(Map<String, dynamic> map) {
+    return SubTask(
+      id: map['id'],
+      title: map['title'] ?? '',
+      estimatedHours: map['estimatedHours'] ?? 0,
+      isCompleted: map['isCompleted'] ?? false,
+    );
+  }
+}
+
+class Milestone {
+  final String id;
+  String title;
+  String description;
+  DateTime deadline;
+  bool isCompleted;
+  List<SubTask> subtasks;
+
+  Milestone({
+    String? id,
+    required this.title,
+    this.description = '',
+    required this.deadline,
+    this.isCompleted = false,
+    List<SubTask>? subtasks,
+  })  : id = id ?? const Uuid().v4(),
+        subtasks = subtasks ?? [];
+
+  Map<String, dynamic> toMap() {
+    return {
+      'id': id,
+      'title': title,
+      'description': description,
       'deadline': deadline.toIso8601String(),
       'isCompleted': isCompleted,
+      'subtasks': subtasks.map((x) => x.toMap()).toList(),
     };
   }
 
@@ -27,8 +66,12 @@ class Milestone {
     return Milestone(
       id: map['id'],
       title: map['title'],
+      description: map['description'] ?? '',
       deadline: DateTime.parse(map['deadline']),
       isCompleted: map['isCompleted'] ?? false,
+      subtasks: map['subtasks'] != null
+          ? List<SubTask>.from((map['subtasks'] as List).map((x) => SubTask.fromMap(x)))
+          : [],
     );
   }
 }

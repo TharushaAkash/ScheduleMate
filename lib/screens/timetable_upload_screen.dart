@@ -83,7 +83,7 @@ class _TimetableUploadScreenState extends State<TimetableUploadScreen>
 
   Future<void> _pickFile() async {
     AuthScreen.bypassNextLifecycleLock = true;
-    final result = await FilePicker.platform.pickFiles(
+    final result = await FilePicker.pickFiles(
       type: FileType.custom,
       allowedExtensions: ['html', 'htm'],
       withData: true,
@@ -1077,3 +1077,5 @@ class _LoadingDialog extends StatelessWidget {
     );
   }
 }
+
+

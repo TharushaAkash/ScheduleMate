@@ -135,7 +135,7 @@ class _CaMarksScreenState extends State<CaMarksScreen>
     }
 
     AuthScreen.bypassNextLifecycleLock = true;
-    final result = await FilePicker.platform.pickFiles(
+    final result = await FilePicker.pickFiles(
       type: FileType.custom,
       allowedExtensions: ['pdf'],
       allowMultiple: true,
@@ -934,3 +934,4 @@ class _MarkCardState extends State<_MarkCard> {
     );
   }
 }
+
