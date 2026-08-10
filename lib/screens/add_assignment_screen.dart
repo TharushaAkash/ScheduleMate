@@ -180,12 +180,7 @@ class _AddAssignmentScreenState extends State<AddAssignmentScreen> {
                           ? targetDeadline!.toIso8601String().split('T')[0] 
                           : 'Not explicitly specified (space milestones logically starting from today)';
 
-                      String safePdfText = pdfText;
-                      if (safePdfText.length > 8000) {
-                        safePdfText = '${safePdfText.substring(0, 8000)}\n\n[Note: Document content truncated to fit API token limits.]';
-                      }
-
-                      final promptText = '''
+                      final String fullPromptText = '''
 You are an expert AI project planning assistant.
 
 Today's date is: $todayStr
@@ -193,7 +188,7 @@ Final project deadline is: $mainDeadlineStr
 
 SOURCE INFORMATION:
 - Assignment Description: ${promptController.text.trim().isEmpty ? 'None provided' : promptController.text.trim()}
-${safePdfText.isNotEmpty ? '- Extracted PDF Document Content:\n$safePdfText' : ''}
+${pdfText.isNotEmpty ? '- Extracted PDF Document Content:\n$pdfText' : ''}
 
 PROJECT PLANNING REQUIREMENTS:
 1. UNDERSTAND REQUIREMENTS & DELIVERABLES:
@@ -212,12 +207,12 @@ PROJECT PLANNING REQUIREMENTS:
    - Every milestone must contain 2 to 6 small, actionable, beginner-friendly subtasks (e.g., "Create database tables and schema script", "Build user login screen UI", "Connect login form to authentication API", "Write unit test cases").
    - Assign realistic estimated hours (integer) for every subtask based on task complexity.
 
-4. DEPENDENCIES & DEADLINES SCHEDULING:
-   - Respect strict task dependencies (e.g., UI planning before UI code, DB schema before API dev, development before testing, testing before submission).
-   - Extract any specific intermediate dates/deadlines explicitly mentioned in the description or PDF.
-   - If specific milestone dates are not given, logically space out milestone deadline_date values between today ($todayStr) and the final target deadline ($mainDeadlineStr).
-   - Milestone deadlines must be chronological, ending on or before the final project deadline ($mainDeadlineStr).
-   - Every subtask deadline_date must be on or before its parent milestone deadline_date.
+4. EXPLICIT DEADLINE & DATE EXTRACTION (CRITICAL HIGHEST PRIORITY):
+   - Scan the entire PDF document content and assignment description carefully for ANY explicit dates, deadlines, schedules, timetables, submission targets, or milestones mentioned (e.g. "Proposal Due: 2026-08-25", "Draft Submission: Sept 15", "Final Project: Oct 10", etc.).
+   - IF EXPLICIT DATES ARE FOUND IN THE SOURCE PDF/TEXT: You MUST match the milestone deadline_date to those EXACT EXPLICIT DATES. Explicit dates from the PDF take 100% HIGHEST PRIORITY and MUST NOT be overridden by default date spacing!
+   - IF A SUB-DEADLINE OR DUE DATE IS MENTIONED FOR A SPECIFIC STAGE: Use that exact date for the corresponding milestone/subtask.
+   - ONLY IF NO EXPLICIT DATES ARE MENTIONED ANYWHERE IN THE PDF/TEXT: Logically space out the milestone deadline_date values chronologically between today ($todayStr) and $mainDeadlineStr.
+   - Subtask deadline_date must be on or before its parent milestone deadline_date.
 
 5. OUTPUT STRICT JSON ONLY:
 Return ONLY a single valid JSON object in this exact format, with no markdown block formatting, no intro, and no extra text:
@@ -243,11 +238,43 @@ Return ONLY a single valid JSON object in this exact format, with no markdown bl
                       final groqKey = dotenv.env['GROQ_API_KEY'] ?? '';
                       final geminiKey = dotenv.env['GEMINI_API_KEY'] ?? '';
 
-                      // 1. Try Groq API if key is present
-                      if (groqKey.isNotEmpty) {
+                      // 1. Try Gemini API first (1 Million Token context - handles full untruncated PDF with all dates)
+                      if (geminiKey.isNotEmpty) {
+                        try {
+                          final geminiEndpoint = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=$geminiKey';
+                          final response = await http.post(
+                            Uri.parse(geminiEndpoint),
+                            headers: {'Content-Type': 'application/json'},
+                            body: json.encode({
+                              'contents': [{'parts': [{'text': fullPromptText}]}],
+                              'generationConfig': {'responseMimeType': 'application/json'}
+                            }),
+                          );
+                          
+                          if (response.statusCode == 200) {
+                            final data = json.decode(response.body);
+                            textResult = data['candidates'][0]['content']['parts'][0]['text'];
+                            isSuccess = true;
+                          } else {
+                            print('Gemini API Error (${response.statusCode}): ${response.body}');
+                          }
+                        } catch (e) {
+                          print('Gemini API Exception: $e');
+                        }
+                      }
+
+                      // 2. Fallback to Groq API if Gemini failed or key is missing
+                      if (!isSuccess && groqKey.isNotEmpty) {
                         try {
                           final groqEndpoint = 'https://api.groq.com/openai/v1/chat/completions';
                           
+                          // Build safe prompt for Groq token limits
+                          String safePdfText = pdfText;
+                          if (safePdfText.length > 8000) {
+                            safePdfText = '${safePdfText.substring(0, 8000)}\n\n[Note: Document content truncated for Groq token limits.]';
+                          }
+                          final groqPromptText = fullPromptText.replaceFirst(pdfText, safePdfText);
+
                           // Attempt A: Llama-3.3-70b-versatile
                           var response = await http.post(
                             Uri.parse(groqEndpoint),
@@ -257,7 +284,7 @@ Return ONLY a single valid JSON object in this exact format, with no markdown bl
                             },
                             body: json.encode({
                               'model': 'llama-3.3-70b-versatile',
-                              'messages': [{'role': 'user', 'content': promptText}],
+                              'messages': [{'role': 'user', 'content': groqPromptText}],
                               'response_format': {'type': 'json_object'}
                             }),
                           );
@@ -277,7 +304,7 @@ Return ONLY a single valid JSON object in this exact format, with no markdown bl
                               },
                               body: json.encode({
                                 'model': 'llama-3.1-8b-instant',
-                                'messages': [{'role': 'user', 'content': promptText}],
+                                'messages': [{'role': 'user', 'content': groqPromptText}],
                                 'response_format': {'type': 'json_object'}
                               }),
                             );
