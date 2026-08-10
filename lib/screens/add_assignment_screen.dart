@@ -180,6 +180,11 @@ class _AddAssignmentScreenState extends State<AddAssignmentScreen> {
                           ? targetDeadline!.toIso8601String().split('T')[0] 
                           : 'Not explicitly specified (space milestones logically starting from today)';
 
+                      String safePdfText = pdfText;
+                      if (safePdfText.length > 8000) {
+                        safePdfText = '${safePdfText.substring(0, 8000)}\n\n[Note: Document content truncated to fit API token limits.]';
+                      }
+
                       final promptText = '''
 You are an expert AI project planning assistant.
 
@@ -188,7 +193,7 @@ Final project deadline is: $mainDeadlineStr
 
 SOURCE INFORMATION:
 - Assignment Description: ${promptController.text.trim().isEmpty ? 'None provided' : promptController.text.trim()}
-${pdfText.isNotEmpty ? '- Extracted PDF Document Content:\n$pdfText' : ''}
+${safePdfText.isNotEmpty ? '- Extracted PDF Document Content:\n$safePdfText' : ''}
 
 PROJECT PLANNING REQUIREMENTS:
 1. UNDERSTAND REQUIREMENTS & DELIVERABLES:
@@ -234,52 +239,87 @@ Return ONLY a single valid JSON object in this exact format, with no markdown bl
 }
 ''';
                       
-                      if (pdfText.isNotEmpty) {
-                        // GROQ API for File Uploads
-                        final groqKey = dotenv.env['GROQ_API_KEY'] ?? '';
-                        final endpoint = 'https://api.groq.com/openai/v1/chat/completions';
-                        
-                        final response = await http.post(
-                          Uri.parse(endpoint),
-                          headers: {
-                            'Content-Type': 'application/json',
-                            'Authorization': 'Bearer $groqKey',
-                          },
-                          body: json.encode({
-                            'model': 'llama-3.3-70b-versatile',
-                            'messages': [{'role': 'user', 'content': promptText}],
-                            'response_format': {'type': 'json_object'}
-                          }),
-                        );
-                        
-                        if (response.statusCode == 200) {
-                          final data = json.decode(response.body);
-                          textResult = data['choices'][0]['message']['content'];
-                        } else {
-                          print('Groq API Error: ${response.body}');
-                          throw Exception('Groq API Failed');
+                      bool isSuccess = false;
+                      final groqKey = dotenv.env['GROQ_API_KEY'] ?? '';
+                      final geminiKey = dotenv.env['GEMINI_API_KEY'] ?? '';
+
+                      // 1. Try Groq API if key is present
+                      if (groqKey.isNotEmpty) {
+                        try {
+                          final groqEndpoint = 'https://api.groq.com/openai/v1/chat/completions';
+                          
+                          // Attempt A: Llama-3.3-70b-versatile
+                          var response = await http.post(
+                            Uri.parse(groqEndpoint),
+                            headers: {
+                              'Content-Type': 'application/json',
+                              'Authorization': 'Bearer $groqKey',
+                            },
+                            body: json.encode({
+                              'model': 'llama-3.3-70b-versatile',
+                              'messages': [{'role': 'user', 'content': promptText}],
+                              'response_format': {'type': 'json_object'}
+                            }),
+                          );
+                          
+                          if (response.statusCode == 200) {
+                            final data = json.decode(response.body);
+                            textResult = data['choices'][0]['message']['content'];
+                            isSuccess = true;
+                          } else {
+                            print('Groq 70b failed (${response.statusCode}): ${response.body}. Trying 8b model fallback...');
+                            // Attempt B: Llama-3.1-8b-instant (Higher TPM limit)
+                            response = await http.post(
+                              Uri.parse(groqEndpoint),
+                              headers: {
+                                'Content-Type': 'application/json',
+                                'Authorization': 'Bearer $groqKey',
+                              },
+                              body: json.encode({
+                                'model': 'llama-3.1-8b-instant',
+                                'messages': [{'role': 'user', 'content': promptText}],
+                                'response_format': {'type': 'json_object'}
+                              }),
+                            );
+                            
+                            if (response.statusCode == 200) {
+                              final data = json.decode(response.body);
+                              textResult = data['choices'][0]['message']['content'];
+                              isSuccess = true;
+                            }
+                          }
+                        } catch (e) {
+                          print('Groq API Error: $e');
                         }
-                      } else {
-                        // GEMINI API for Prompts without file
-                        final geminiKey = dotenv.env['GEMINI_API_KEY'] ?? ''; 
-                        final endpoint = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=$geminiKey';
-                        
-                        final response = await http.post(
-                          Uri.parse(endpoint),
-                          headers: {'Content-Type': 'application/json'},
-                          body: json.encode({
-                            'contents': [{'parts': [{'text': promptText}]}],
-                            'generationConfig': {'responseMimeType': 'application/json'}
-                          }),
-                        );
-                        
-                        if (response.statusCode == 200) {
-                          final data = json.decode(response.body);
-                          textResult = data['candidates'][0]['content']['parts'][0]['text'];
-                        } else {
-                          print('Gemini API Error: ${response.body}');
-                          throw Exception('Gemini API Failed');
+                      }
+
+                      // 2. Fallback to Gemini API if Groq failed or key is missing
+                      if (!isSuccess && geminiKey.isNotEmpty) {
+                        try {
+                          final geminiEndpoint = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=$geminiKey';
+                          final response = await http.post(
+                            Uri.parse(geminiEndpoint),
+                            headers: {'Content-Type': 'application/json'},
+                            body: json.encode({
+                              'contents': [{'parts': [{'text': promptText}]}],
+                              'generationConfig': {'responseMimeType': 'application/json'}
+                            }),
+                          );
+                          
+                          if (response.statusCode == 200) {
+                            final data = json.decode(response.body);
+                            textResult = data['candidates'][0]['content']['parts'][0]['text'];
+                            isSuccess = true;
+                          } else {
+                            print('Gemini API Error: ${response.body}');
+                          }
+                        } catch (e) {
+                          print('Gemini API Exception: $e');
                         }
+                      }
+
+                      if (!isSuccess || textResult.trim().isEmpty) {
+                        throw Exception('All AI generation requests failed. Please check network connection or try a shorter prompt.');
                       }
                       
                       String cleanJson = textResult.trim();
