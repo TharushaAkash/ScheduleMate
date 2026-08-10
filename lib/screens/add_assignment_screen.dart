@@ -268,11 +268,8 @@ Return ONLY a single valid JSON object in this exact format, with no markdown bl
                         try {
                           final groqEndpoint = 'https://api.groq.com/openai/v1/chat/completions';
                           
-                          // Build safe prompt for Groq token limits
-                          String safePdfText = pdfText;
-                          if (safePdfText.length > 8000) {
-                            safePdfText = '${safePdfText.substring(0, 8000)}\n\n[Note: Document content truncated for Groq token limits.]';
-                          }
+                          // Smart extraction preserves dates/timeline lines anywhere in the PDF
+                          String safePdfText = _extractSmartPdfText(pdfText);
                           final groqPromptText = fullPromptText.replaceFirst(pdfText, safePdfText);
 
                           // Attempt A: Llama-3.3-70b-versatile
@@ -317,31 +314,6 @@ Return ONLY a single valid JSON object in this exact format, with no markdown bl
                           }
                         } catch (e) {
                           print('Groq API Error: $e');
-                        }
-                      }
-
-                      // 2. Fallback to Gemini API if Groq failed or key is missing
-                      if (!isSuccess && geminiKey.isNotEmpty) {
-                        try {
-                          final geminiEndpoint = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=$geminiKey';
-                          final response = await http.post(
-                            Uri.parse(geminiEndpoint),
-                            headers: {'Content-Type': 'application/json'},
-                            body: json.encode({
-                              'contents': [{'parts': [{'text': promptText}]}],
-                              'generationConfig': {'responseMimeType': 'application/json'}
-                            }),
-                          );
-                          
-                          if (response.statusCode == 200) {
-                            final data = json.decode(response.body);
-                            textResult = data['candidates'][0]['content']['parts'][0]['text'];
-                            isSuccess = true;
-                          } else {
-                            print('Gemini API Error: ${response.body}');
-                          }
-                        } catch (e) {
-                          print('Gemini API Exception: $e');
                         }
                       }
 
@@ -991,7 +963,31 @@ Return ONLY a single valid JSON object in this exact format, with no markdown bl
           ),
         ],
       ),
+  String _extractSmartPdfText(String text, {int maxLen = 7500}) {
+    if (text.length <= maxLen) return text;
+
+    String topChunk = text.substring(0, 4500);
+    String remainingText = text.substring(4500);
+    List<String> lines = remainingText.split('\n');
+    List<String> dateLines = [];
+
+    final dateKeywords = RegExp(
+      r'\b(date|deadline|due|submission|timeline|schedule|milestone|deliverable|jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec|week|\d{4}-\d{2}-\d{2}|\d{1,2}/\d{1,2})\b',
+      caseSensitive: false,
     );
+
+    for (var line in lines) {
+      if (dateKeywords.hasMatch(line) && line.trim().isNotEmpty) {
+        dateLines.add(line.trim());
+        if (dateLines.join('\n').length > 2500) break;
+      }
+    }
+
+    if (dateLines.isNotEmpty) {
+      return '$topChunk\n\n--- EXTRACTED TIMELINE & DEADLINES FROM PDF ---\n${dateLines.join('\n')}';
+    } else {
+      return '$topChunk\n\n[Note: Document content truncated for token limit.]';
+    }
   }
 }
 
