@@ -65,6 +65,9 @@ class _TimetableUploadScreenState extends State<TimetableUploadScreen>
   }
 
   Future<void> _loadSavedProfiles() async {
+    if (mounted) {
+      await context.read<TimetableProvider>().loadExamTimetable();
+    }
     final profiles = await DatabaseHelper.instance.getSavedTimetableProfiles();
     final prefs = await SharedPreferences.getInstance();
     final semester = prefs.getString('notified_semester');
@@ -83,7 +86,7 @@ class _TimetableUploadScreenState extends State<TimetableUploadScreen>
 
   Future<void> _pickFile() async {
     AuthScreen.bypassNextLifecycleLock = true;
-    final result = await FilePicker.platform.pickFiles(
+    final result = await FilePicker.pickFiles(
       type: FileType.custom,
       allowedExtensions: ['html', 'htm'],
       withData: true,
@@ -1077,3 +1080,5 @@ class _LoadingDialog extends StatelessWidget {
     );
   }
 }
+
+

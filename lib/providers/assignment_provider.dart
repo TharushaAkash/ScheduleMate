@@ -111,8 +111,39 @@ class AssignmentProvider with ChangeNotifier {
       final assignment = _assignments[assignmentIndex];
       final milestoneIndex = assignment.milestones.indexWhere((m) => m.id == milestoneId);
       if (milestoneIndex != -1) {
-        assignment.milestones[milestoneIndex].isCompleted = !assignment.milestones[milestoneIndex].isCompleted;
+        final milestone = assignment.milestones[milestoneIndex];
+        milestone.isCompleted = !milestone.isCompleted;
+        
+        // Auto-update all subtasks to match parent milestone status
+        if (milestone.subtasks.isNotEmpty) {
+          for (var s in milestone.subtasks) {
+            s.isCompleted = milestone.isCompleted;
+          }
+        }
+        
         await saveAssignments();
+      }
+    }
+  }
+
+  Future<void> toggleSubtask(String assignmentId, String milestoneId, String subtaskId) async {
+    final assignmentIndex = _assignments.indexWhere((a) => a.id == assignmentId);
+    if (assignmentIndex != -1) {
+      final assignment = _assignments[assignmentIndex];
+      final milestoneIndex = assignment.milestones.indexWhere((m) => m.id == milestoneId);
+      if (milestoneIndex != -1) {
+        final milestone = assignment.milestones[milestoneIndex];
+        final subtaskIndex = milestone.subtasks.indexWhere((s) => s.id == subtaskId);
+        if (subtaskIndex != -1) {
+          milestone.subtasks[subtaskIndex].isCompleted = !milestone.subtasks[subtaskIndex].isCompleted;
+          
+          // Auto-check parent milestone if all subtasks are done
+          if (milestone.subtasks.isNotEmpty) {
+            milestone.isCompleted = milestone.subtasks.every((s) => s.isCompleted);
+          }
+          
+          await saveAssignments();
+        }
       }
     }
   }

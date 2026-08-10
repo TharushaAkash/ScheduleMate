@@ -21,7 +21,7 @@ dependencies:
   shared_preferences: ^2.2.3
 
   # Timetable HTML upload + parsing
-  file_picker: ^8.0.0+1
+  file_picker: ^11.0.3
   html: ^0.15.4
 
   # Notifications (class reminders, 30 min before)
@@ -29,7 +29,7 @@ dependencies:
   timezone: ^0.9.4
 
   intl: ^0.19.0
-  syncfusion_flutter_pdf: ^28.1.33
+  syncfusion_flutter_pdf: ^33.2.13
   fl_chart: ^0.70.2
 
   # CourseWeb (Moodle) login + announcements import
@@ -57,6 +57,7 @@ dependencies:
   google_fonts: ^6.2.1
   uuid: ^4.6.0
   flutter_svg: ^2.3.0
+  flutter_dotenv: ^6.0.1
 
 dev_dependencies:
   flutter_test:
@@ -77,3 +78,4 @@ flutter:
     - assets/icon/app_icon.png
     - assets/3d_task.png
     - readme-assets/app_icon.png
+    - .env

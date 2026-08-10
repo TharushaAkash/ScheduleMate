@@ -1742,7 +1742,7 @@ class _GpaScreenState extends State<GpaScreen> {
     }
 
     AuthScreen.bypassNextLifecycleLock = true;
-    final result = await FilePicker.platform.pickFiles(
+    final result = await FilePicker.pickFiles(
       type: FileType.custom,
       allowedExtensions: ['pdf'],
     );
@@ -1839,7 +1839,7 @@ class _GpaScreenState extends State<GpaScreen> {
     }
 
     AuthScreen.bypassNextLifecycleLock = true;
-    final result = await FilePicker.platform.pickFiles(
+    final result = await FilePicker.pickFiles(
       type: FileType.custom,
       allowedExtensions: ['pdf'],
       allowMultiple: true,
@@ -2041,3 +2041,5 @@ class _GlowOrb extends StatelessWidget {
     );
   }
 }
+
+

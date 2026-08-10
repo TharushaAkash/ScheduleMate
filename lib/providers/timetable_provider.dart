@@ -16,6 +16,13 @@ class TimetableProvider extends ChangeNotifier {
   List<TimetableEntry> notifiedTimetable = [];
   List<ExamTimetableEntry> examTimetable = [];
 
+  TimetableProvider() {
+    Future.microtask(() async {
+      await loadDefaultTimetable();
+      await loadExamTimetable();
+    });
+  }
+
   bool get hasParsedData => _parsed != null && _parsed!.entries.isNotEmpty;
 
   List<String> get availableSemesters {
@@ -145,6 +152,13 @@ class TimetableProvider extends ChangeNotifier {
 
   Future<void> addExamEntry(ExamTimetableEntry entry) async {
     await DatabaseHelper.instance.insertExamEntry(entry);
+    await loadExamTimetable();
+  }
+
+  Future<void> addExamEntries(List<ExamTimetableEntry> entries) async {
+    for (var entry in entries) {
+      await DatabaseHelper.instance.insertExamEntry(entry);
+    }
     await loadExamTimetable();
   }
 

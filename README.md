@@ -48,7 +48,8 @@ Track GPA in real-time, import faculty timetables from HTML exports, and stay on
 * 🔔 **Class Reminders** — Weekly notification reminders with customizable lead times for Android 12+.
 * 💾 **Offline First** — All data stored locally via SQLite — no internet connection required.
 * 🗂️ **Organized by Day/Week** — View your timetable in a clean, structured layout organized by day and time slot with a sleek weekly calendar view.
-* 🎨 **Premium UI Design** — Stunning modern interface featuring **Glassmorphism**, smooth animations, and Material 3 design guidelines.
+* 🤖 **AI Task Planner** — Break down complex assignments into structured milestones and calculate exact deadlines using Gemini & Groq APIs.
+* 🎨 **Premium Glassmorphism UI** — Stunning modern interface featuring transparent cards, glowing accents, and Material 3 design guidelines.
 * ⚙️ **Flexible Customization** — Adjust grade point scales and notification timings to fit your institution's system.
 * 🚀 **Mandatory App Updates** — Enforces essential app updates with a modern, beautifully designed UI dialog to ensure all users are always on the latest version.
 ---

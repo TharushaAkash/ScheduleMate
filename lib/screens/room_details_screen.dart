@@ -183,7 +183,7 @@ class _RoomDetailsScreenState extends State<RoomDetailsScreen> {
 
   // Upload a file directly to Supabase Storage
   Future<void> _uploadFile() async {
-    final result = await FilePicker.platform.pickFiles(
+    final result = await FilePicker.pickFiles(
       type: FileType.any,
       allowMultiple: false,
     );
@@ -1240,3 +1240,4 @@ class _WhatsAppPatternPainter extends CustomPainter {
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
+
