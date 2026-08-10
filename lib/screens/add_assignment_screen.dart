@@ -234,53 +234,43 @@ Return ONLY a single valid JSON object in this exact format, with no markdown bl
 }
 ''';
                       
-                      bool isSuccess = false;
-                      final groqKey = dotenv.env['GROQ_API_KEY'] ?? '';
-                      final geminiKey = dotenv.env['GEMINI_API_KEY'] ?? '';
+                      if (pdfText.isNotEmpty) {
+                        // GROQ API for PDF File Uploads
+                        final groqKey = dotenv.env['GROQ_API_KEY'] ?? '';
+                        final groqEndpoint = 'https://api.groq.com/openai/v1/chat/completions';
+                        
+                        // Smart PDF extraction preserves dates and timeline lines anywhere in the PDF while keeping tokens under 12k
+                        String safePdfText = _extractSmartPdfText(pdfText);
+                        final groqPromptText = fullPromptText.replaceFirst(pdfText, safePdfText);
 
-                      // 1. Try Gemini API first (1 Million Token context - handles full untruncated PDF with all dates)
-                      if (geminiKey.isNotEmpty) {
-                        try {
-                          final geminiEndpoint = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=$geminiKey';
-                          final response = await http.post(
-                            Uri.parse(geminiEndpoint),
-                            headers: {'Content-Type': 'application/json'},
-                            body: json.encode({
-                              'contents': [{'parts': [{'text': fullPromptText}]}],
-                              'generationConfig': {'responseMimeType': 'application/json'}
-                            }),
-                          );
-                          
-                          if (response.statusCode == 200) {
-                            final data = json.decode(response.body);
-                            textResult = data['candidates'][0]['content']['parts'][0]['text'];
-                            isSuccess = true;
-                          } else {
-                            print('Gemini API Error (${response.statusCode}): ${response.body}');
-                          }
-                        } catch (e) {
-                          print('Gemini API Exception: $e');
-                        }
-                      }
-
-                      // 2. Fallback to Groq API if Gemini failed or key is missing
-                      if (!isSuccess && groqKey.isNotEmpty) {
-                        try {
-                          final groqEndpoint = 'https://api.groq.com/openai/v1/chat/completions';
-                          
-                          // Smart extraction preserves dates/timeline lines anywhere in the PDF
-                          String safePdfText = _extractSmartPdfText(pdfText);
-                          final groqPromptText = fullPromptText.replaceFirst(pdfText, safePdfText);
-
-                          // Attempt A: Llama-3.3-70b-versatile
-                          var response = await http.post(
+                        // Attempt A: Llama-3.3-70b-versatile
+                        var response = await http.post(
+                          Uri.parse(groqEndpoint),
+                          headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': 'Bearer $groqKey',
+                          },
+                          body: json.encode({
+                            'model': 'llama-3.3-70b-versatile',
+                            'messages': [{'role': 'user', 'content': groqPromptText}],
+                            'response_format': {'type': 'json_object'}
+                          }),
+                        );
+                        
+                        if (response.statusCode == 200) {
+                          final data = json.decode(response.body);
+                          textResult = data['choices'][0]['message']['content'];
+                        } else {
+                          print('Groq 70b failed (${response.statusCode}): ${response.body}. Trying 8b model fallback...');
+                          // Attempt B: Llama-3.1-8b-instant (Higher TPM limit: 30,000)
+                          response = await http.post(
                             Uri.parse(groqEndpoint),
                             headers: {
                               'Content-Type': 'application/json',
                               'Authorization': 'Bearer $groqKey',
                             },
                             body: json.encode({
-                              'model': 'llama-3.3-70b-versatile',
+                              'model': 'llama-3.1-8b-instant',
                               'messages': [{'role': 'user', 'content': groqPromptText}],
                               'response_format': {'type': 'json_object'}
                             }),
@@ -289,36 +279,32 @@ Return ONLY a single valid JSON object in this exact format, with no markdown bl
                           if (response.statusCode == 200) {
                             final data = json.decode(response.body);
                             textResult = data['choices'][0]['message']['content'];
-                            isSuccess = true;
                           } else {
-                            print('Groq 70b failed (${response.statusCode}): ${response.body}. Trying 8b model fallback...');
-                            // Attempt B: Llama-3.1-8b-instant (Higher TPM limit)
-                            response = await http.post(
-                              Uri.parse(groqEndpoint),
-                              headers: {
-                                'Content-Type': 'application/json',
-                                'Authorization': 'Bearer $groqKey',
-                              },
-                              body: json.encode({
-                                'model': 'llama-3.1-8b-instant',
-                                'messages': [{'role': 'user', 'content': groqPromptText}],
-                                'response_format': {'type': 'json_object'}
-                              }),
-                            );
-                            
-                            if (response.statusCode == 200) {
-                              final data = json.decode(response.body);
-                              textResult = data['choices'][0]['message']['content'];
-                              isSuccess = true;
-                            }
+                            print('Groq API Error: ${response.body}');
+                            throw Exception('Groq API Failed');
                           }
-                        } catch (e) {
-                          print('Groq API Error: $e');
                         }
-                      }
-
-                      if (!isSuccess || textResult.trim().isEmpty) {
-                        throw Exception('All AI generation requests failed. Please check network connection or try a shorter prompt.');
+                      } else {
+                        // GEMINI API for Prompts without file
+                        final geminiKey = dotenv.env['GEMINI_API_KEY'] ?? ''; 
+                        final endpoint = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=$geminiKey';
+                        
+                        final response = await http.post(
+                          Uri.parse(endpoint),
+                          headers: {'Content-Type': 'application/json'},
+                          body: json.encode({
+                            'contents': [{'parts': [{'text': fullPromptText}]}],
+                            'generationConfig': {'responseMimeType': 'application/json'}
+                          }),
+                        );
+                        
+                        if (response.statusCode == 200) {
+                          final data = json.decode(response.body);
+                          textResult = data['candidates'][0]['content']['parts'][0]['text'];
+                        } else {
+                          print('Gemini API Error: ${response.body}');
+                          throw Exception('Gemini API Failed');
+                        }
                       }
                       
                       String cleanJson = textResult.trim();
