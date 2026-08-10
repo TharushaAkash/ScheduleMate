@@ -176,18 +176,62 @@ class _AddAssignmentScreenState extends State<AddAssignmentScreen> {
                       String textResult = '';
                       
                       final todayStr = DateTime.now().toIso8601String().split('T')[0];
-                      final deadlineStr = targetDeadline != null ? '\nIMPORTANT: The overall target deadline for this assignment is ${targetDeadline!.toIso8601String().split('T')[0]}. If the prompt or PDF does not specify exact dates, use this target deadline to logically space out the milestones.' : '\nIf no specific dates are given in the prompt, space them out logically starting from today.';
-                      
-                      final promptText = '''
-You are an AI task planner. Today's date is $todayStr.
-Break down the following project/assignment into 3 to 5 logical milestones.
-For beginners, include initial planning steps like sketching UI, drawing ER diagrams, documentation, setup, etc.
-Analyze any specific dates or deadlines mentioned in the assignment description. Assign an exact deadline date for each milestone in YYYY-MM-DD format based on the prompt's instructions.$deadlineStr
-Return ONLY a valid JSON object in this exact format, with no markdown formatting or extra text:
-{"milestones": [{"title": "Step name here", "description": "Short description of what to do", "deadline_date": "2024-05-20", "subtasks": [{"title": "Subtask 1", "hours": 4}, {"title": "Subtask 2", "hours": 2}]}]}
+                      final mainDeadlineStr = targetDeadline != null 
+                          ? targetDeadline!.toIso8601String().split('T')[0] 
+                          : 'Not explicitly specified (space milestones logically starting from today)';
 
-Assignment description: ${promptController.text}
-${pdfText.isNotEmpty ? '\nExtracted PDF Content for context:\n$pdfText' : ''}
+                      final promptText = '''
+You are an expert AI project planning assistant.
+
+Today's date is: $todayStr
+Final project deadline is: $mainDeadlineStr
+
+SOURCE INFORMATION:
+- Assignment Description: ${promptController.text.trim().isEmpty ? 'None provided' : promptController.text.trim()}
+${pdfText.isNotEmpty ? '- Extracted PDF Document Content:\n$pdfText' : ''}
+
+PROJECT PLANNING REQUIREMENTS:
+1. UNDERSTAND REQUIREMENTS & DELIVERABLES:
+   - Identify main goals, technical features, functional & non-functional requirements, technology stack, database design, UI/UX screens, APIs, test plans, documentation (SRS/Proposal/Reports), diagrams (ERD, UML, Architecture), and presentations.
+   - Never invent requirements that are not supported by the provided information.
+
+2. DYNAMIC WORKFLOW & MILESTONE ADAPTATION:
+   - Analyze project scope and complexity from the provided description/PDF:
+     * Small / Simple Assignments: Generate 3 to 5 milestones.
+     * Medium / Multi-feature Projects: Generate 5 to 7 milestones.
+     * Large / Complex Software Systems: Generate 6 to 10 milestones to thoroughly cover Requirements, UI/UX Design, Architecture & Database Setup, Backend API Development, Frontend Implementation, System Integration, Testing & Security Audit, Documentation & Final Presentation.
+   - Ensure the workflow is logical, beginner-friendly, and chronologically ordered.
+   - Include essential initial setup steps (environment setup, wireframes/sketching, ER diagrams, database schemas, initial documentation).
+
+3. ACTIONABLE SUBTASKS & HOUR ESTIMATES:
+   - Every milestone must contain 2 to 6 small, actionable, beginner-friendly subtasks (e.g., "Create database tables and schema script", "Build user login screen UI", "Connect login form to authentication API", "Write unit test cases").
+   - Assign realistic estimated hours (integer) for every subtask based on task complexity.
+
+4. DEPENDENCIES & DEADLINES SCHEDULING:
+   - Respect strict task dependencies (e.g., UI planning before UI code, DB schema before API dev, development before testing, testing before submission).
+   - Extract any specific intermediate dates/deadlines explicitly mentioned in the description or PDF.
+   - If specific milestone dates are not given, logically space out milestone deadline_date values between today ($todayStr) and the final target deadline ($mainDeadlineStr).
+   - Milestone deadlines must be chronological, ending on or before the final project deadline ($mainDeadlineStr).
+   - Every subtask deadline_date must be on or before its parent milestone deadline_date.
+
+5. OUTPUT STRICT JSON ONLY:
+Return ONLY a single valid JSON object in this exact format, with no markdown block formatting, no intro, and no extra text:
+{
+  "milestones": [
+    {
+      "title": "Step name here",
+      "description": "Short description of what to do in this milestone",
+      "deadline_date": "YYYY-MM-DD",
+      "subtasks": [
+        {
+          "title": "Specific actionable subtask",
+          "hours": 4,
+          "deadline_date": "YYYY-MM-DD"
+        }
+      ]
+    }
+  ]
+}
 ''';
                       
                       if (pdfText.isNotEmpty) {
@@ -238,7 +282,18 @@ ${pdfText.isNotEmpty ? '\nExtracted PDF Content for context:\n$pdfText' : ''}
                         }
                       }
                       
-                      final jsonData = json.decode(textResult);
+                      String cleanJson = textResult.trim();
+                      if (cleanJson.startsWith('```json')) {
+                        cleanJson = cleanJson.substring(7);
+                      } else if (cleanJson.startsWith('```')) {
+                        cleanJson = cleanJson.substring(3);
+                      }
+                      if (cleanJson.endsWith('```')) {
+                        cleanJson = cleanJson.substring(0, cleanJson.length - 3);
+                      }
+                      cleanJson = cleanJson.trim();
+
+                      final jsonData = json.decode(cleanJson);
                       final List milestonesData = jsonData['milestones'] ?? [];
                         
                         setState(() {
@@ -246,9 +301,16 @@ ${pdfText.isNotEmpty ? '\nExtracted PDF Content for context:\n$pdfText' : ''}
                             List<SubTask> parsedSubTasks = [];
                             if (m['subtasks'] != null) {
                               for (var s in m['subtasks']) {
+                                final hrs = s['hours'];
+                                int hoursVal = 0;
+                                if (hrs is num) {
+                                  hoursVal = hrs.toInt();
+                                } else if (hrs != null) {
+                                  hoursVal = int.tryParse(hrs.toString()) ?? 0;
+                                }
                                 parsedSubTasks.add(SubTask(
                                   title: s['title'] ?? 'Subtask',
-                                  estimatedHours: s['hours'] ?? 0,
+                                  estimatedHours: hoursVal,
                                 ));
                               }
                             }
