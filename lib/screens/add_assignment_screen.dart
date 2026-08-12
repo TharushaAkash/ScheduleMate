@@ -180,7 +180,12 @@ class _AddAssignmentScreenState extends State<AddAssignmentScreen> {
                           ? targetDeadline!.toIso8601String().split('T')[0] 
                           : 'Not explicitly specified (space milestones logically starting from today)';
 
-                      final String fullPromptText = '''
+                      String safePdfText = pdfText;
+                      if (safePdfText.length > 8000) {
+                        safePdfText = '${safePdfText.substring(0, 8000)}\n\n[Note: Document content truncated to fit API token limits.]';
+                      }
+
+                      final promptText = '''
 You are an expert AI project planning assistant.
 
 Today's date is: $todayStr
@@ -188,7 +193,7 @@ Final project deadline is: $mainDeadlineStr
 
 SOURCE INFORMATION:
 - Assignment Description: ${promptController.text.trim().isEmpty ? 'None provided' : promptController.text.trim()}
-${pdfText.isNotEmpty ? '- Extracted PDF Document Content:\n$pdfText' : ''}
+${safePdfText.isNotEmpty ? '- Extracted PDF Document Content:\n$safePdfText' : ''}
 
 PROJECT PLANNING REQUIREMENTS:
 1. UNDERSTAND REQUIREMENTS & DELIVERABLES:
@@ -207,12 +212,12 @@ PROJECT PLANNING REQUIREMENTS:
    - Every milestone must contain 2 to 6 small, actionable, beginner-friendly subtasks (e.g., "Create database tables and schema script", "Build user login screen UI", "Connect login form to authentication API", "Write unit test cases").
    - Assign realistic estimated hours (integer) for every subtask based on task complexity.
 
-4. EXPLICIT DEADLINE & DATE EXTRACTION (CRITICAL HIGHEST PRIORITY):
-   - Scan the entire PDF document content and assignment description carefully for ANY explicit dates, deadlines, schedules, timetables, submission targets, or milestones mentioned (e.g. "Proposal Due: 2026-08-25", "Draft Submission: Sept 15", "Final Project: Oct 10", etc.).
-   - IF EXPLICIT DATES ARE FOUND IN THE SOURCE PDF/TEXT: You MUST match the milestone deadline_date to those EXACT EXPLICIT DATES. Explicit dates from the PDF take 100% HIGHEST PRIORITY and MUST NOT be overridden by default date spacing!
-   - IF A SUB-DEADLINE OR DUE DATE IS MENTIONED FOR A SPECIFIC STAGE: Use that exact date for the corresponding milestone/subtask.
-   - ONLY IF NO EXPLICIT DATES ARE MENTIONED ANYWHERE IN THE PDF/TEXT: Logically space out the milestone deadline_date values chronologically between today ($todayStr) and $mainDeadlineStr.
-   - Subtask deadline_date must be on or before its parent milestone deadline_date.
+4. DEPENDENCIES & DEADLINES SCHEDULING:
+   - Respect strict task dependencies (e.g., UI planning before UI code, DB schema before API dev, development before testing, testing before submission).
+   - Extract any specific intermediate dates/deadlines explicitly mentioned in the description or PDF.
+   - If specific milestone dates are not given, logically space out milestone deadline_date values between today ($todayStr) and the final target deadline ($mainDeadlineStr).
+   - Milestone deadlines must be chronological, ending on or before the final project deadline ($mainDeadlineStr).
+   - Every subtask deadline_date must be on or before its parent milestone deadline_date.
 
 5. OUTPUT STRICT JSON ONLY:
 Return ONLY a single valid JSON object in this exact format, with no markdown block formatting, no intro, and no extra text:
@@ -234,44 +239,25 @@ Return ONLY a single valid JSON object in this exact format, with no markdown bl
 }
 ''';
                       
-                      if (pdfText.isNotEmpty) {
-                        // GROQ API for PDF File Uploads
-                        final groqKey = dotenv.env['GROQ_API_KEY'] ?? '';
-                        final groqEndpoint = 'https://api.groq.com/openai/v1/chat/completions';
-                        
-                        // Smart PDF extraction preserves dates and timeline lines anywhere in the PDF while keeping tokens under 12k
-                        String safePdfText = _extractSmartPdfText(pdfText);
-                        final groqPromptText = fullPromptText.replaceFirst(pdfText, safePdfText);
+                      bool isSuccess = false;
+                      final groqKey = dotenv.env['GROQ_API_KEY'] ?? '';
+                      final geminiKey = dotenv.env['GEMINI_API_KEY'] ?? '';
 
-                        // Attempt A: Llama-3.3-70b-versatile
-                        var response = await http.post(
-                          Uri.parse(groqEndpoint),
-                          headers: {
-                            'Content-Type': 'application/json',
-                            'Authorization': 'Bearer $groqKey',
-                          },
-                          body: json.encode({
-                            'model': 'llama-3.3-70b-versatile',
-                            'messages': [{'role': 'user', 'content': groqPromptText}],
-                            'response_format': {'type': 'json_object'}
-                          }),
-                        );
-                        
-                        if (response.statusCode == 200) {
-                          final data = json.decode(response.body);
-                          textResult = data['choices'][0]['message']['content'];
-                        } else {
-                          print('Groq 70b failed (${response.statusCode}): ${response.body}. Trying 8b model fallback...');
-                          // Attempt B: Llama-3.1-8b-instant (Higher TPM limit: 30,000)
-                          response = await http.post(
+                      // 1. Try Groq API if key is present
+                      if (groqKey.isNotEmpty) {
+                        try {
+                          final groqEndpoint = 'https://api.groq.com/openai/v1/chat/completions';
+                          
+                          // Attempt A: Llama-3.3-70b-versatile
+                          var response = await http.post(
                             Uri.parse(groqEndpoint),
                             headers: {
                               'Content-Type': 'application/json',
                               'Authorization': 'Bearer $groqKey',
                             },
                             body: json.encode({
-                              'model': 'llama-3.1-8b-instant',
-                              'messages': [{'role': 'user', 'content': groqPromptText}],
+                              'model': 'llama-3.3-70b-versatile',
+                              'messages': [{'role': 'user', 'content': promptText}],
                               'response_format': {'type': 'json_object'}
                             }),
                           );
@@ -279,32 +265,61 @@ Return ONLY a single valid JSON object in this exact format, with no markdown bl
                           if (response.statusCode == 200) {
                             final data = json.decode(response.body);
                             textResult = data['choices'][0]['message']['content'];
+                            isSuccess = true;
                           } else {
-                            print('Groq API Error: ${response.body}');
-                            throw Exception('Groq API Failed');
+                            print('Groq 70b failed (${response.statusCode}): ${response.body}. Trying 8b model fallback...');
+                            // Attempt B: Llama-3.1-8b-instant (Higher TPM limit)
+                            response = await http.post(
+                              Uri.parse(groqEndpoint),
+                              headers: {
+                                'Content-Type': 'application/json',
+                                'Authorization': 'Bearer $groqKey',
+                              },
+                              body: json.encode({
+                                'model': 'llama-3.1-8b-instant',
+                                'messages': [{'role': 'user', 'content': promptText}],
+                                'response_format': {'type': 'json_object'}
+                              }),
+                            );
+                            
+                            if (response.statusCode == 200) {
+                              final data = json.decode(response.body);
+                              textResult = data['choices'][0]['message']['content'];
+                              isSuccess = true;
+                            }
                           }
+                        } catch (e) {
+                          print('Groq API Error: $e');
                         }
-                      } else {
-                        // GEMINI API for Prompts without file
-                        final geminiKey = dotenv.env['GEMINI_API_KEY'] ?? ''; 
-                        final endpoint = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=$geminiKey';
-                        
-                        final response = await http.post(
-                          Uri.parse(endpoint),
-                          headers: {'Content-Type': 'application/json'},
-                          body: json.encode({
-                            'contents': [{'parts': [{'text': fullPromptText}]}],
-                            'generationConfig': {'responseMimeType': 'application/json'}
-                          }),
-                        );
-                        
-                        if (response.statusCode == 200) {
-                          final data = json.decode(response.body);
-                          textResult = data['candidates'][0]['content']['parts'][0]['text'];
-                        } else {
-                          print('Gemini API Error: ${response.body}');
-                          throw Exception('Gemini API Failed');
+                      }
+
+                      // 2. Fallback to Gemini API if Groq failed or key is missing
+                      if (!isSuccess && geminiKey.isNotEmpty) {
+                        try {
+                          final geminiEndpoint = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=$geminiKey';
+                          final response = await http.post(
+                            Uri.parse(geminiEndpoint),
+                            headers: {'Content-Type': 'application/json'},
+                            body: json.encode({
+                              'contents': [{'parts': [{'text': promptText}]}],
+                              'generationConfig': {'responseMimeType': 'application/json'}
+                            }),
+                          );
+                          
+                          if (response.statusCode == 200) {
+                            final data = json.decode(response.body);
+                            textResult = data['candidates'][0]['content']['parts'][0]['text'];
+                            isSuccess = true;
+                          } else {
+                            print('Gemini API Error: ${response.body}');
+                          }
+                        } catch (e) {
+                          print('Gemini API Exception: $e');
                         }
+                      }
+
+                      if (!isSuccess || textResult.trim().isEmpty) {
+                        throw Exception('All AI generation requests failed. Please check network connection or try a shorter prompt.');
                       }
                       
                       String cleanJson = textResult.trim();
@@ -949,31 +964,7 @@ Return ONLY a single valid JSON object in this exact format, with no markdown bl
           ),
         ],
       ),
-  String _extractSmartPdfText(String text, {int maxLen = 7500}) {
-    if (text.length <= maxLen) return text;
-
-    String topChunk = text.substring(0, 4500);
-    String remainingText = text.substring(4500);
-    List<String> lines = remainingText.split('\n');
-    List<String> dateLines = [];
-
-    final dateKeywords = RegExp(
-      r'\b(date|deadline|due|submission|timeline|schedule|milestone|deliverable|jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec|week|\d{4}-\d{2}-\d{2}|\d{1,2}/\d{1,2})\b',
-      caseSensitive: false,
     );
-
-    for (var line in lines) {
-      if (dateKeywords.hasMatch(line) && line.trim().isNotEmpty) {
-        dateLines.add(line.trim());
-        if (dateLines.join('\n').length > 2500) break;
-      }
-    }
-
-    if (dateLines.isNotEmpty) {
-      return '$topChunk\n\n--- EXTRACTED TIMELINE & DEADLINES FROM PDF ---\n${dateLines.join('\n')}';
-    } else {
-      return '$topChunk\n\n[Note: Document content truncated for token limit.]';
-    }
   }
 }
 
