@@ -28,6 +28,10 @@ jobs:
       - name: Install dependencies
         run: flutter pub get
 
+      - name: Create dummy .env file
+        run: echo "" > .env
+
+
       - name: Analyze project source
         run: flutter analyze || true
 
